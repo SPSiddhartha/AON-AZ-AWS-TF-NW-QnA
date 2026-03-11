@@ -1,0 +1,996 @@
+नीचे **DevOps Interview के लिए 25 Real Terraform Troubleshooting Questions & Answers (Hindi)** दिए गए हैं। ये अक्सर **production issues, debugging और real DevOps scenarios** पर आधारित होते हैं।
+
+---
+
+# 🔧 25 Real Terraform Troubleshooting Interview Questions & Answers
+
+# 1️⃣ Terraform init error आ रहा है – Provider download fail
+
+**Question:**
+`terraform init` run करते समय provider download fail हो रहा है।
+
+**Possible Reasons:**
+
+* Internet issue
+* Wrong provider version
+* Firewall blocking
+
+**Solution:**
+
+```bash
+terraform init -upgrade
+```
+
+या
+
+```bash
+rm -rf .terraform
+terraform init
+```
+
+---
+
+# 2️⃣ Terraform state file corrupt हो गई
+
+**Question:**
+`terraform.tfstate` corrupt हो गई है।
+
+**Solution:**
+
+Restore backup:
+
+```bash
+terraform.tfstate.backup
+```
+
+या
+
+Remote backend से restore करें।
+
+---
+
+# 3️⃣ Terraform plan unexpected changes दिखा रहा है
+
+**Reason:**
+
+* Manual changes in cloud console
+* State drift
+
+**Solution:**
+
+```bash
+terraform refresh
+```
+
+या
+
+Drift review करें।
+
+---
+
+# 4️⃣ Terraform apply करते समय resource already exists error
+
+Example:
+
+```
+Error: resource already exists
+```
+
+**Solution:**
+
+Resource import करें।
+
+```bash
+terraform import aws_s3_bucket.bucket my-bucket
+```
+
+---
+
+# 5️⃣ Terraform destroy accidentally run हो गया
+
+**Solution:**
+
+अगर infrastructure critical है:
+
+* Backup IaC
+* State recovery
+* Manual restore
+
+Best practice:
+
+```hcl
+lifecycle {
+prevent_destroy = true
+}
+```
+
+---
+
+# 6️⃣ Terraform state lock error
+
+Example:
+
+```
+Error acquiring the state lock
+```
+
+**Reason:**
+
+Multiple users running Terraform.
+
+**Solution:**
+
+Force unlock:
+
+```bash
+terraform force-unlock LOCK_ID
+```
+
+---
+
+# 7️⃣ Terraform apply बहुत slow है
+
+**Possible Reasons:**
+
+* API throttling
+* Large infrastructure
+* Dependencies
+
+**Solution:**
+
+Parallelism increase करें
+
+```bash
+terraform apply -parallelism=20
+```
+
+---
+
+# 8️⃣ Terraform module path error
+
+Example:
+
+```
+module not found
+```
+
+**Solution:**
+
+Check:
+
+```
+source = "./modules/vpc"
+```
+
+Run again:
+
+```bash
+terraform init
+```
+
+---
+
+# 9️⃣ Terraform variable not defined error
+
+Example:
+
+```
+The argument "instance_type" is required
+```
+
+**Solution:**
+
+Define variable:
+
+```hcl
+variable "instance_type" {}
+```
+
+या
+
+```
+terraform.tfvars
+```
+
+---
+
+# 🔟 Terraform dependency issue
+
+Resource creation fail हो रहा है।
+
+**Solution:**
+
+Manual dependency define करें।
+
+```hcl
+depends_on = [aws_vpc.main]
+```
+
+---
+
+# 1️⃣1️⃣ Terraform backend configuration error
+
+Example:
+
+```
+Backend initialization required
+```
+
+**Solution:**
+
+Run:
+
+```bash
+terraform init -reconfigure
+```
+
+---
+
+# 1️⃣2️⃣ Terraform state mismatch
+
+Infrastructure exist करता है लेकिन state में नहीं है।
+
+**Solution:**
+
+Import resource
+
+```bash
+terraform import
+```
+
+---
+
+# 1️⃣3️⃣ Terraform AWS credentials error
+
+Example:
+
+```
+No valid credential sources found
+```
+
+**Solution:**
+
+Check:
+
+```bash
+aws configure
+```
+
+या
+
+Environment variables:
+
+```bash
+export AWS_ACCESS_KEY_ID=
+```
+
+---
+
+# 1️⃣4️⃣ Terraform remote backend S3 access denied
+
+**Reason:**
+
+IAM permissions missing.
+
+Required permissions:
+
+```
+s3:GetObject
+s3:PutObject
+s3:ListBucket
+```
+
+---
+
+# 1️⃣5️⃣ Terraform state drift issue
+
+Cloud console से resource modify हो गया।
+
+**Solution:**
+
+Run:
+
+```bash
+terraform plan
+```
+
+Review changes.
+
+---
+
+# 1️⃣6️⃣ Terraform module version conflict
+
+Example:
+
+```
+module version conflict
+```
+
+**Solution:**
+
+Update:
+
+```hcl
+version = "~> 3.0"
+```
+
+---
+
+# 1️⃣7️⃣ Terraform apply failed in middle
+
+कुछ resources create हुए, कुछ नहीं।
+
+**Solution:**
+
+Run again:
+
+```bash
+terraform apply
+```
+
+Terraform state देखकर remaining resources create करेगा।
+
+---
+
+# 1️⃣8️⃣ Terraform provisioner script fail
+
+Example:
+
+```
+remote-exec failed
+```
+
+**Possible Reasons:**
+
+* SSH issue
+* Security group blocked
+
+Check:
+
+```
+port 22 open
+```
+
+---
+
+# 1️⃣9️⃣ Terraform resource recreate हो रहा है
+
+Example:
+
+```
+-/+ destroy and recreate
+```
+
+**Reason:**
+
+Immutable field change।
+
+Example:
+
+```
+AMI change
+```
+
+---
+
+# 2️⃣0️⃣ Terraform workspace confusion
+
+Wrong environment deploy हो गया।
+
+Check:
+
+```bash
+terraform workspace list
+```
+
+Switch:
+
+```bash
+terraform workspace select prod
+```
+
+---
+
+# 2️⃣1️⃣ Terraform graph debugging
+
+Dependencies unclear हैं।
+
+Run:
+
+```bash
+terraform graph
+```
+
+Dependency visualization मिलेगा।
+
+---
+
+# 2️⃣2️⃣ Terraform large state file problem
+
+Large infra → slow operations।
+
+**Solution:**
+
+* Split modules
+* Multiple state files
+
+---
+
+# 2️⃣3️⃣ Terraform secrets leak in state file
+
+Problem:
+
+Secrets plain text में state file में store हो जाते हैं।
+
+**Solution:**
+
+Use:
+
+* Secret manager
+* Vault
+* Sensitive variables
+
+---
+
+# 2️⃣4️⃣ Terraform CI/CD pipeline fail
+
+Example:
+
+```
+terraform not found
+```
+
+**Solution:**
+
+Install Terraform in pipeline:
+
+```
+terraform --version
+```
+
+---
+
+# 2️⃣5️⃣ Terraform production deployment failure
+
+Best debugging steps:
+
+1️⃣ Check logs
+
+```
+TF_LOG=DEBUG
+```
+
+2️⃣ Run
+
+```
+terraform plan
+```
+
+3️⃣ Validate
+
+```
+terraform validate
+```
+
+4️⃣ Check provider versions
+
+---
+
+# ⭐ DevOps Interview Tip
+
+Terraform troubleshooting answer देते समय **4 steps जरूर बोलें**:
+
+1️⃣ Identify error
+2️⃣ Check logs
+3️⃣ Check state
+4️⃣ Fix config
+
+Below are **20 Real-Time Scenario-Based Terraform Troubleshooting Interview Questions & Answers** for **DevOps roles**, focusing on **AWS and Azure**. Each includes **explanation and examples**, similar to what is expected in real DevOps/SRE interviews.
+
+---
+
+# 20 Real-Time Terraform Troubleshooting Scenarios (AWS + Azure)
+
+---
+
+# 1. Scenario: EC2 Instance Already Exists but Terraform Fails
+
+**Problem**
+
+A developer created an **EC2 instance manually from the AWS console**.
+When you run Terraform, you see:
+
+```
+Error: resource already exists
+```
+
+**Solution**
+
+Import the existing resource into Terraform state.
+
+Example:
+
+```bash
+terraform import aws_instance.web i-0abc12345
+```
+
+**Explanation**
+
+Terraform tracks infrastructure using the **state file**.
+If resources exist outside Terraform, importing them synchronizes **Terraform state with the actual infrastructure**.
+
+---
+
+# 2. Scenario: Terraform State Conflict in Team Environment
+
+**Problem**
+
+Multiple DevOps engineers run `terraform apply`, causing state conflicts.
+
+**Solution**
+
+Use a **remote backend** with state locking.
+
+Example (AWS S3 + DynamoDB):
+
+```hcl
+terraform {
+ backend "s3" {
+   bucket         = "terraform-state-prod"
+   key            = "infra/terraform.tfstate"
+   region         = "ap-south-1"
+   dynamodb_table = "terraform-lock"
+ }
+}
+```
+
+**Explanation**
+
+* S3 → stores Terraform state
+* DynamoDB → prevents multiple users from modifying state simultaneously
+
+---
+
+# 3. Scenario: Terraform Plan Always Shows Changes
+
+**Problem**
+
+Running `terraform plan` always shows updates even though configuration hasn’t changed.
+
+**Possible Reasons**
+
+* Manual changes in cloud console
+* Dynamic attributes
+* Drift in infrastructure
+
+**Solution**
+
+Ignore certain attributes.
+
+```hcl
+resource "aws_instance" "web" {
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+```
+
+**Explanation**
+
+Some attributes change automatically and should not trigger updates.
+
+---
+
+# 4. Scenario: Azure Resource Group Creation Fails
+
+**Error**
+
+```
+AuthorizationFailed
+```
+
+**Solution**
+
+Check **Azure Service Principal permissions**.
+
+Required role:
+
+```
+Contributor
+```
+
+Example:
+
+```bash
+az role assignment create --assignee <app-id> --role Contributor
+```
+
+**Explanation**
+
+Terraform interacts with Azure APIs using service principals.
+Insufficient permissions cause resource creation failures.
+
+---
+
+# 5. Scenario: Terraform Apply Failed Midway
+
+**Problem**
+
+Terraform crashed after creating some resources.
+
+**Solution**
+
+Run Terraform again.
+
+```bash
+terraform apply
+```
+
+**Explanation**
+
+Terraform checks the **state file** and creates only the missing resources.
+
+---
+
+# 6. Scenario: AWS Credentials Not Working in CI/CD Pipeline
+
+**Error**
+
+```
+No valid credential sources found
+```
+
+**Solution**
+
+Set environment variables.
+
+```bash
+export AWS_ACCESS_KEY_ID=XXXX
+export AWS_SECRET_ACCESS_KEY=XXXX
+```
+
+OR attach an **IAM Role** to the CI/CD runner.
+
+**Explanation**
+
+Terraform needs AWS credentials to authenticate with the AWS API.
+
+---
+
+# 7. Scenario: Prevent Accidental Deletion of Production Resources
+
+**Problem**
+
+Someone accidentally runs `terraform destroy`.
+
+**Solution**
+
+Use lifecycle protection.
+
+```hcl
+resource "aws_db_instance" "prod_db" {
+
+ lifecycle {
+   prevent_destroy = true
+ }
+
+}
+```
+
+**Explanation**
+
+Terraform will refuse to delete this resource.
+
+---
+
+# 8. Scenario: Terraform Module Upgrade Recreates Infrastructure
+
+**Problem**
+
+After upgrading a module version, Terraform plans to destroy and recreate resources.
+
+Example:
+
+```hcl
+module "vpc" {
+ source  = "terraform-aws-modules/vpc/aws"
+ version = "3.0"
+}
+```
+
+**Explanation**
+
+Module updates may modify underlying configurations causing resource replacement.
+
+**Best Practice**
+
+Review `terraform plan` before upgrading modules.
+
+---
+
+# 9. Scenario: Terraform State Lock Error
+
+**Error**
+
+```
+Error acquiring the state lock
+```
+
+**Solution**
+
+Unlock the state.
+
+```bash
+terraform force-unlock LOCK_ID
+```
+
+**Explanation**
+
+State lock may remain after an interrupted Terraform run.
+
+---
+
+# 10. Scenario: Azure VM Created but SSH Connection Fails
+
+**Possible Causes**
+
+* Network Security Group blocking SSH
+* Port 22 not allowed
+
+**Fix**
+
+```hcl
+security_rule {
+ name                       = "AllowSSH"
+ priority                   = 100
+ direction                  = "Inbound"
+ access                     = "Allow"
+ protocol                   = "Tcp"
+ destination_port_range     = "22"
+}
+```
+
+---
+
+# 11. Scenario: Terraform Apply is Very Slow
+
+**Cause**
+
+Large infrastructure or cloud API throttling.
+
+**Solution**
+
+Increase parallelism.
+
+```bash
+terraform apply -parallelism=20
+```
+
+**Explanation**
+
+Terraform can create multiple resources simultaneously.
+
+---
+
+# 12. Scenario: Terraform Recreates Resource Instead of Updating
+
+**Example Output**
+
+```
+-/+ destroy and recreate
+```
+
+**Reason**
+
+Some fields are immutable.
+
+Example:
+
+Changing **AMI in AWS EC2**
+
+```hcl
+ami = "ami-new123"
+```
+
+**Explanation**
+
+Certain attributes require full resource replacement.
+
+---
+
+# 13. Scenario: Azure Storage Account Name Conflict
+
+**Error**
+
+```
+StorageAccountAlreadyTaken
+```
+
+**Explanation**
+
+Azure storage account names must be **globally unique**.
+
+**Solution**
+
+Use unique naming.
+
+```hcl
+name = "storageprod98765"
+```
+
+---
+
+# 14. Scenario: Terraform Variables Not Passing in CI/CD
+
+**Problem**
+
+Pipeline fails due to missing variables.
+
+**Solution**
+
+Use `.tfvars` file.
+
+Example:
+
+```bash
+terraform apply -var-file=prod.tfvars
+```
+
+Example file:
+
+```
+instance_type = "t3.micro"
+```
+
+---
+
+# 15. Scenario: Detecting Terraform Infrastructure Drift
+
+**Problem**
+
+Someone modified resources in the cloud console.
+
+**Solution**
+
+Run:
+
+```bash
+terraform plan
+```
+
+**Explanation**
+
+Terraform compares the **state file vs actual infrastructure**.
+
+---
+
+# 16. Scenario: Reusing Infrastructure Across Environments
+
+You need **dev, stage, and prod environments**.
+
+**Solution**
+
+Use modules.
+
+Example:
+
+```hcl
+module "ec2" {
+ source = "./modules/ec2"
+}
+```
+
+**Explanation**
+
+Modules allow reusable infrastructure components.
+
+---
+
+# 17. Scenario: Azure Remote Backend for Terraform State
+
+Example configuration:
+
+```hcl
+terraform {
+ backend "azurerm" {
+   resource_group_name  = "tfstate-rg"
+   storage_account_name = "tfstate123"
+   container_name       = "tfstate"
+   key                  = "terraform.tfstate"
+ }
+}
+```
+
+**Explanation**
+
+Azure Storage stores Terraform state remotely.
+
+---
+
+# 18. Scenario: Terraform Secrets Visible in State File
+
+**Problem**
+
+Sensitive values appear in state files.
+
+**Solution**
+
+Use secret managers:
+
+* AWS Secrets Manager
+* Azure Key Vault
+
+Example:
+
+```hcl
+data "aws_secretsmanager_secret" "db_password" {
+ name = "prod-db-password"
+}
+```
+
+---
+
+# 19. Scenario: Resource Creation Order Problem
+
+Example:
+
+EC2 instance is created before VPC.
+
+**Solution**
+
+Define dependency.
+
+```hcl
+depends_on = [aws_vpc.main]
+```
+
+**Explanation**
+
+Terraform automatically manages dependencies but manual definition may be required.
+
+---
+
+# 20. Scenario: Debugging Terraform Failures
+
+**Steps**
+
+1. Validate configuration
+
+```bash
+terraform validate
+```
+
+2. Check execution plan
+
+```bash
+terraform plan
+```
+
+3. Enable debug logs
+
+```bash
+TF_LOG=DEBUG terraform apply
+```
+
+4. Inspect state
+
+```bash
+terraform state list
+```
+
+---
+
+# DevOps Interview Tip
+
+When answering **Terraform troubleshooting scenarios**, explain your approach:
+
+1. Identify the error
+2. Check logs and Terraform plan
+3. Verify state file
+4. Apply fix and validate infrastructure
+
+Example response:
+
+> “Terraform deployment failed in production. I checked the logs, ran `terraform plan`, detected infrastructure drift, imported the existing resource into state, and successfully applied the configuration.”
+
+---
