@@ -993,4 +993,1951 @@ Example response:
 
 > “Terraform deployment failed in production. I checked the logs, ran `terraform plan`, detected infrastructure drift, imported the existing resource into state, and successfully applied the configuration.”
 
+-----------------------------------------------------------------------------------------------------
+
+Below are **40 Advanced & Critical Scenario-Based Terraform Troubleshooting Interview Questions** focused on **Terraform + Kubernetes + AWS + Azure** environments. These are the type of **deep troubleshooting and architecture questions asked in senior DevOps / SRE interviews**.
+
 ---
+
+# 40 Advanced Terraform Scenario-Based DevOps Interview Questions
+
+*(Terraform + Kubernetes + AWS + Azure Troubleshooting)*
+
+---
+
+# PART 1: Terraform Core Troubleshooting (10)
+
+---
+
+### 1. Scenario: Terraform state file accidentally deleted
+
+**Situation**
+
+The `terraform.tfstate` file was deleted locally.
+
+**Solution**
+
+If using remote backend like **Amazon Web Services S3**, restore from the backend.
+
+If local:
+
+* Restore from backup `terraform.tfstate.backup`
+* Or re-import resources.
+
+Example:
+
+```bash
+terraform import aws_instance.web i-0abc123
+```
+
+**Explanation**
+
+Terraform relies on the **state file to track infrastructure**.
+
+---
+
+### 2. Scenario: Terraform deployment partially completed and crashed
+
+**Problem**
+
+Terraform stopped during deployment.
+
+**Fix**
+
+Run again:
+
+```bash
+terraform apply
+```
+
+Terraform reads the state and continues remaining resources.
+
+---
+
+### 3. Scenario: Terraform always recreates a resource
+
+Example output:
+
+```
+-/+ destroy and recreate
+```
+
+**Reason**
+
+Immutable attributes changed.
+
+Example:
+
+```
+AMI change
+instance_type change
+```
+
+**Solution**
+
+Use lifecycle rules.
+
+```hcl
+lifecycle {
+ create_before_destroy = true
+}
+```
+
+---
+
+### 4. Scenario: Terraform state drift detected
+
+Someone changed infrastructure in **Amazon Web Services console.
+
+**Fix**
+
+Run:
+
+```bash
+terraform plan
+```
+
+Then either:
+
+* Revert changes
+* Update Terraform configuration.
+
+---
+
+### 5. Scenario: Multiple engineers modifying infrastructure
+
+State conflicts occur.
+
+**Solution**
+
+Use remote state backend:
+
+* S3
+* DynamoDB locking
+
+---
+
+### 6. Scenario: Terraform module upgrade breaks infrastructure
+
+**Fix**
+
+Pin module versions.
+
+Example:
+
+```hcl
+version = "~> 4.0"
+```
+
+Always check:
+
+```bash
+terraform plan
+```
+
+---
+
+### 7. Scenario: Terraform apply fails due to API throttling
+
+Cloud providers like **Amazon Web Services** limit API calls.
+
+**Fix**
+
+Reduce parallelism:
+
+```bash
+terraform apply -parallelism=5
+```
+
+---
+
+### 8. Scenario: Terraform secrets visible in state file
+
+State file contains plaintext passwords.
+
+**Solution**
+
+Use secret managers:
+
+* **Amazon Web Services Secrets Manager**
+* **Microsoft Azure Key Vault**
+
+---
+
+### 9. Scenario: Terraform resource dependency error
+
+Example:
+
+EC2 instance created before VPC.
+
+**Fix**
+
+```hcl
+depends_on = [aws_vpc.main]
+```
+
+---
+
+### 10. Scenario: Terraform destroy accidentally executed in production
+
+**Solution**
+
+Use lifecycle protection.
+
+```hcl
+lifecycle {
+ prevent_destroy = true
+}
+```
+
+---
+
+# PART 2: Terraform + AWS Scenarios (10)
+
+---
+
+### 11. Scenario: AWS credentials not working in CI/CD pipeline
+
+Error:
+
+```
+No valid credential sources found
+```
+
+**Fix**
+
+Use IAM role.
+
+Example in **Amazon Web Services EC2** or CI runners.
+
+---
+
+### 12. Scenario: Terraform cannot create VPC due to limits
+
+AWS account reached VPC limit.
+
+**Fix**
+
+Check limits.
+
+Request quota increase.
+
+---
+
+### 13. Scenario: S3 backend access denied
+
+Error:
+
+```
+AccessDenied
+```
+
+**Fix**
+
+Ensure IAM policy includes:
+
+```
+s3:GetObject
+s3:PutObject
+s3:ListBucket
+```
+
+---
+
+### 14. Scenario: Terraform cannot attach EBS volume
+
+**Possible Causes**
+
+* Different availability zone
+* Instance not stopped
+
+**Fix**
+
+Ensure same AZ.
+
+---
+
+### 15. Scenario: Load balancer not routing traffic
+
+Check:
+
+* security groups
+* target group health checks.
+
+Example resources:
+
+* **AWS Application Load Balancer**
+* **Amazon EC2**
+
+---
+
+### 16. Scenario: Terraform creates duplicate resources
+
+**Reason**
+
+Using `count` incorrectly.
+
+Example:
+
+```
+count = 3
+```
+
+Use `for_each` instead.
+
+---
+
+### 17. Scenario: Terraform backend locked forever
+
+State locked in DynamoDB.
+
+Fix:
+
+```bash
+terraform force-unlock LOCK_ID
+```
+
+---
+
+### 18. Scenario: EC2 instance created but unreachable
+
+Check:
+
+* security group
+* route tables
+* subnet configuration.
+
+---
+
+### 19. Scenario: Terraform cannot create RDS instance
+
+Reasons:
+
+* subnet group missing
+* security group incorrect.
+
+Example service:
+
+**Amazon RDS**
+
+---
+
+### 20. Scenario: Terraform deployment extremely slow
+
+Cause:
+
+Large infrastructure graph.
+
+Fix:
+
+* split modules
+* separate state files.
+
+---
+
+# PART 3: Terraform + Azure Scenarios (10)
+
+---
+
+### 21. Scenario: Terraform cannot create Azure resources
+
+Error:
+
+```
+AuthorizationFailed
+```
+
+Fix:
+
+Grant Contributor role.
+
+Platform:
+
+**Microsoft Azure**
+
+---
+
+### 22. Scenario: Azure storage account name conflict
+
+Storage names must be globally unique.
+
+Solution:
+
+Generate dynamic names.
+
+---
+
+### 23. Scenario: Terraform backend in Azure fails
+
+Example backend:
+
+```
+backend "azurerm"
+```
+
+Ensure:
+
+* resource group exists
+* storage account exists.
+
+---
+
+### 24. Scenario: Azure VM created but SSH fails
+
+Check:
+
+* Network Security Group rules
+* public IP.
+
+---
+
+### 25. Scenario: Terraform cannot attach managed disk
+
+Ensure VM stopped before attachment.
+
+---
+
+### 26. Scenario: Azure resources created in wrong region
+
+Fix:
+
+```
+location = "Central India"
+```
+
+---
+
+### 27. Scenario: Terraform plan shows changes every time
+
+Azure tags updated automatically.
+
+Use:
+
+```
+ignore_changes
+```
+
+---
+
+### 28. Scenario: Terraform destroy fails
+
+Resource dependency exists.
+
+Example:
+
+Disk attached to VM.
+
+Detach before destroy.
+
+---
+
+### 29. Scenario: Terraform cannot authenticate to Azure
+
+Use service principal.
+
+Example:
+
+```
+ARM_CLIENT_ID
+ARM_CLIENT_SECRET
+```
+
+---
+
+### 30. Scenario: Azure resource lock prevents deletion
+
+Azure resource lock prevents Terraform destroy.
+
+Remove lock first.
+
+---
+
+# PART 4: Terraform + Kubernetes Scenarios (10)
+
+---
+
+### 31. Scenario: Terraform cannot connect to Kubernetes cluster
+
+Check kubeconfig.
+
+Cluster example:
+
+**Kubernetes**
+
+---
+
+### 32. Scenario: Terraform cannot deploy pods
+
+Cause:
+
+RBAC permission missing.
+
+---
+
+### 33. Scenario: Kubernetes service not accessible
+
+Check:
+
+* service type
+* ingress
+* node port.
+
+---
+
+### 34. Scenario: Terraform apply fails deploying Helm charts
+
+Check Helm provider configuration.
+
+Example tool:
+
+**Helm**
+
+---
+
+### 35. Scenario: Terraform creates Kubernetes resources before cluster ready
+
+Solution:
+
+Use dependencies.
+
+---
+
+### 36. Scenario: Kubernetes cluster nodes not joining
+
+Check:
+
+* worker node IAM roles
+* networking.
+
+---
+
+### 37. Scenario: Terraform cannot deploy to EKS cluster
+
+Cluster example:
+
+**Amazon EKS**
+
+Fix:
+
+Update kubeconfig.
+
+---
+
+### 38. Scenario: Terraform destroys Kubernetes namespace accidentally
+
+Use lifecycle rules.
+
+---
+
+### 39. Scenario: Kubernetes ingress not working
+
+Check:
+
+* ingress controller
+* DNS configuration.
+
+---
+
+### 40. Scenario: Terraform deployment pipeline fails in CI/CD
+
+Debug steps:
+
+1. Validate config
+
+```
+terraform validate
+```
+
+2. Check plan
+
+```
+terraform plan
+```
+
+3. Enable debug logs
+
+```
+TF_LOG=DEBUG terraform apply
+```
+
+4. Verify provider versions.
+
+---
+
+# Pro DevOps Interview Tip
+
+When answering **advanced Terraform scenarios**, structure answers like:
+
+**1️⃣ Identify the issue**
+**2️⃣ Check logs and Terraform plan**
+**3️⃣ Investigate state file**
+**4️⃣ Apply fix and verify infrastructure**
+
+Example:
+
+> “In production we saw Terraform failing due to state drift. I ran `terraform plan`, identified manual console changes, imported the resource into the state, and applied the configuration successfully.”
+
+---
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++ OR +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Below are **40 Advanced Critical Terraform Scenario-Based Interview Questions with Troubleshooting Examples** covering **Terraform + Kubernetes + AWS + Azure DevOps pipelines**. These are **real production-type scenarios** often discussed in senior DevOps/SRE interviews.
+
+---
+
+# Advanced Terraform Troubleshooting Scenarios
+
+## Terraform + Kubernetes + AWS + Azure DevOps (40 Scenarios)
+
+---
+
+# Terraform + AWS Scenarios
+
+---
+
+# 1. Scenario: Terraform Destroy Accidentally Triggered in Production
+
+**Problem**
+
+Someone runs:
+
+```bash
+terraform destroy
+```
+
+against the production workspace.
+
+**Solution**
+
+Add lifecycle protection.
+
+Example:
+
+```hcl
+resource "aws_db_instance" "prod_db" {
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+```
+
+**Explanation**
+
+Critical resources cannot be deleted accidentally.
+
+---
+
+# 2. Scenario: Terraform Plan Shows Hundreds of Changes Suddenly
+
+**Possible Causes**
+
+* Provider version upgrade
+* Drift in infrastructure
+* State corruption
+
+**Fix**
+
+Check provider version:
+
+```hcl
+terraform {
+ required_providers {
+  aws = {
+   source  = "hashicorp/aws"
+   version = "~> 5.0"
+  }
+ }
+}
+```
+
+Then run:
+
+```bash
+terraform init -upgrade
+```
+
+---
+
+# 3. Scenario: Terraform State File Lost
+
+**Problem**
+
+Local `terraform.tfstate` deleted.
+
+**Solution**
+
+Use remote backend such as **AWS S3**.
+
+Example:
+
+```hcl
+terraform {
+ backend "s3" {
+  bucket = "terraform-state-prod"
+  key    = "network/terraform.tfstate"
+  region = "ap-south-1"
+ }
+}
+```
+
+**Explanation**
+
+Remote state ensures recoverability.
+
+---
+
+# 4. Scenario: Multiple DevOps Engineers Running Terraform Simultaneously
+
+**Problem**
+
+State corruption risk.
+
+**Solution**
+
+Enable state locking with DynamoDB.
+
+```hcl
+dynamodb_table = "terraform-lock"
+```
+
+---
+
+# 5. Scenario: Terraform Resource Exists but Not in State
+
+Example error:
+
+```
+Error: resource already exists
+```
+
+**Solution**
+
+Import the resource.
+
+```bash
+terraform import aws_s3_bucket.logs prod-log-bucket
+```
+
+---
+
+# 6. Scenario: Terraform Creates Duplicate Resources
+
+**Reason**
+
+Incorrect `count` or `for_each`.
+
+Example problematic code:
+
+```hcl
+count = 3
+```
+
+**Fix**
+
+Use unique identifiers with `for_each`.
+
+```hcl
+for_each = toset(["dev","stage","prod"])
+```
+
+---
+
+# 7. Scenario: AWS API Rate Limiting During Terraform Apply
+
+**Error**
+
+```
+ThrottlingException
+```
+
+**Solution**
+
+Reduce parallelism.
+
+```bash
+terraform apply -parallelism=5
+```
+
+---
+
+# 8. Scenario: Terraform Security Group Changes Causing Downtime
+
+**Problem**
+
+Replacing security groups destroys connectivity.
+
+**Solution**
+
+Use lifecycle.
+
+```hcl
+lifecycle {
+ create_before_destroy = true
+}
+```
+
+---
+
+# 9. Scenario: Terraform Recreates EC2 Instead of Updating
+
+Example change:
+
+```
+-/+ aws_instance.web
+```
+
+**Cause**
+
+Immutable fields changed (AMI, subnet).
+
+**Solution**
+
+Plan infrastructure updates carefully.
+
+---
+
+# 10. Scenario: AWS Credentials Expired in CI/CD
+
+**Error**
+
+```
+ExpiredToken
+```
+
+**Solution**
+
+Use IAM role in CI pipeline instead of static credentials.
+
+---
+
+# Terraform + Azure Scenarios
+
+---
+
+# 11. Scenario: Azure Resource Creation Fails Due to Permissions
+
+**Error**
+
+```
+AuthorizationFailed
+```
+
+**Fix**
+
+Assign role:
+
+```
+Contributor
+```
+
+Example:
+
+```bash
+az role assignment create
+```
+
+---
+
+# 12. Scenario: Azure Storage Backend Not Accessible
+
+**Error**
+
+```
+Failed to get existing workspaces
+```
+
+**Cause**
+
+Storage account firewall blocking Terraform.
+
+**Fix**
+
+Allow CI/CD runner IP.
+
+---
+
+# 13. Scenario: Azure VM Created but Not Reachable
+
+**Cause**
+
+Network Security Group rules missing.
+
+Example fix:
+
+```hcl
+destination_port_range = "22"
+```
+
+---
+
+# 14. Scenario: Azure Storage Account Name Already Taken
+
+Azure requires global uniqueness.
+
+Example fix:
+
+```hcl
+name = "tfstorage987654"
+```
+
+---
+
+# 15. Scenario: Azure Backend Authentication Failure
+
+**Solution**
+
+Use Service Principal.
+
+Example:
+
+```bash
+az login --service-principal
+```
+
+---
+
+# Terraform + Kubernetes Scenarios
+
+---
+
+# 16. Scenario: Terraform Cannot Connect to Kubernetes Cluster
+
+**Error**
+
+```
+Kubernetes cluster unreachable
+```
+
+**Fix**
+
+Configure provider.
+
+Example:
+
+```hcl
+provider "kubernetes" {
+ config_path = "~/.kube/config"
+}
+```
+
+---
+
+# 17. Scenario: Terraform Cannot Deploy Kubernetes Resources
+
+**Cause**
+
+Cluster not created yet.
+
+**Solution**
+
+Add dependency.
+
+```hcl
+depends_on = [aws_eks_cluster.main]
+```
+
+---
+
+# 18. Scenario: Kubernetes Pods Not Starting After Terraform Deploy
+
+**Cause**
+
+Incorrect resource limits.
+
+Example fix:
+
+```hcl
+resources {
+ limits = {
+  cpu = "500m"
+ }
+}
+```
+
+---
+
+# 19. Scenario: Kubernetes Namespace Already Exists
+
+**Solution**
+
+Import resource.
+
+```bash
+terraform import kubernetes_namespace.dev dev
+```
+
+---
+
+# 20. Scenario: Terraform Updates Delete Kubernetes Pods
+
+**Cause**
+
+Immutable fields changed.
+
+Example:
+
+```
+container image
+```
+
+Rolling update required.
+
+---
+
+# Terraform State & Infrastructure Drift Scenarios
+
+---
+
+# 21. Scenario: Infrastructure Drift Detected
+
+Developer modified resource manually.
+
+**Detection**
+
+```bash
+terraform plan
+```
+
+---
+
+# 22. Scenario: Terraform State Lock Stuck
+
+**Fix**
+
+```bash
+terraform force-unlock LOCK_ID
+```
+
+---
+
+# 23. Scenario: Terraform State File Too Large
+
+**Problem**
+
+Slow execution.
+
+**Solution**
+
+Split infrastructure into modules.
+
+---
+
+# 24. Scenario: Sensitive Data in State File
+
+Example:
+
+```
+DB passwords visible
+```
+
+**Solution**
+
+Use secret managers.
+
+Examples:
+
+* AWS Secrets Manager
+* Azure Key Vault
+
+---
+
+# 25. Scenario: Terraform Modules Causing Cyclic Dependency
+
+**Error**
+
+```
+Cycle detected
+```
+
+**Fix**
+
+Break circular references.
+
+---
+
+# Terraform CI/CD Scenarios
+
+---
+
+# 26. Scenario: Terraform Pipeline Fails at Init Stage
+
+**Fix**
+
+Ensure Terraform installed.
+
+```bash
+terraform --version
+```
+
+---
+
+# 27. Scenario: Terraform Plan Different in Pipeline vs Local
+
+**Cause**
+
+Different provider versions.
+
+**Fix**
+
+Lock versions.
+
+---
+
+# 28. Scenario: Pipeline Deploying to Wrong Environment
+
+**Solution**
+
+Use workspaces.
+
+```bash
+terraform workspace select prod
+```
+
+---
+
+# 29. Scenario: Secrets Not Passing to Terraform Pipeline
+
+Use environment variables.
+
+```
+TF_VAR_db_password
+```
+
+---
+
+# 30. Scenario: Terraform Apply Stuck in Pipeline
+
+Enable debug logs.
+
+```bash
+TF_LOG=DEBUG terraform apply
+```
+
+---
+
+# Terraform Advanced Architecture Scenarios
+
+---
+
+# 31. Scenario: Multi-Region Infrastructure Deployment
+
+Use provider aliases.
+
+Example:
+
+```hcl
+provider "aws" {
+ region = "us-east-1"
+ alias  = "useast"
+}
+```
+
+---
+
+# 32. Scenario: Blue-Green Deployment with Terraform
+
+Deploy two environments.
+
+```
+blue
+green
+```
+
+Switch traffic using load balancer.
+
+---
+
+# 33. Scenario: Zero Downtime Infrastructure Update
+
+Use lifecycle.
+
+```
+create_before_destroy
+```
+
+---
+
+# 34. Scenario: Terraform Modules for Multi-Environment
+
+Structure example:
+
+```
+modules/
+network/
+compute/
+```
+
+---
+
+# 35. Scenario: Terraform Provider Upgrade Breaking Infrastructure
+
+Always test in staging before production.
+
+---
+
+# 36. Scenario: Terraform Apply Timing Out
+
+Increase timeout.
+
+Example:
+
+```hcl
+timeouts {
+ create = "30m"
+}
+```
+
+---
+
+# 37. Scenario: Terraform Creating Infrastructure in Wrong Region
+
+Check provider configuration.
+
+Example:
+
+```hcl
+region = "ap-south-1"
+```
+
+---
+
+# 38. Scenario: Terraform Dependency Graph Debugging
+
+Use:
+
+```bash
+terraform graph
+```
+
+---
+
+# 39. Scenario: Terraform Destroying Kubernetes Cluster Resources
+
+Separate state files for:
+
+```
+cluster
+applications
+```
+
+---
+
+# 40. Scenario: Production Deployment Failure Debugging
+
+Steps:
+
+1. Run validation
+
+```bash
+terraform validate
+```
+
+2. Check plan
+
+```bash
+terraform plan
+```
+
+3. Enable debug logs
+
+```bash
+TF_LOG=DEBUG terraform apply
+```
+
+4. Inspect state
+
+```bash
+terraform state list
+```
+
+---
+
+# Key DevOps Interview Insight
+
+Senior DevOps interviews expect answers structured like this:
+
+**Problem → Root Cause → Fix → Prevention**
+
+Example:
+
+> Terraform deployment failed in production because the resource already existed. I imported the resource into the Terraform state, validated the plan, and applied the configuration. Later we implemented remote state and CI checks to avoid the issue again.
+
+---
+Below is a **Terraform Production Incident Handbook (50 Real Incidents + Fixes)** used by DevOps engineers managing infrastructure on **Amazon Web Services, Microsoft Azure, and Kubernetes clusters**.
+
+These incidents are written in a **production-incident style** used in **SRE / Senior DevOps interviews**:
+
+**Incident → Root Cause → Fix → Prevention**
+
+---
+
+# Terraform Production Incident Handbook
+
+## 50 Real Outages + Fixes (AWS + Azure + Kubernetes)
+
+---
+
+# INCIDENT 1
+
+### Production Database Accidentally Destroyed
+
+**Incident**
+
+A DevOps engineer ran:
+
+```
+terraform destroy
+```
+
+in the production workspace.
+
+**Root Cause**
+
+No lifecycle protection.
+
+**Fix**
+
+Restore from snapshot.
+
+**Prevention**
+
+```
+lifecycle {
+ prevent_destroy = true
+}
+```
+
+---
+
+# INCIDENT 2
+
+### Terraform Deployment Recreated Entire Infrastructure
+
+**Incident**
+
+`terraform apply` attempted to recreate hundreds of resources.
+
+**Root Cause**
+
+Provider version upgrade changed resource schema.
+
+**Fix**
+
+Pin provider version.
+
+```
+required_providers {
+ aws = {
+  version = "~> 5.0"
+ }
+}
+```
+
+---
+
+# INCIDENT 3
+
+### Terraform State File Lost
+
+**Incident**
+
+Engineer deleted `terraform.tfstate`.
+
+**Root Cause**
+
+Local state storage.
+
+**Fix**
+
+Recover from backup.
+
+**Prevention**
+
+Use remote state:
+
+```
+backend "s3"
+```
+
+---
+
+# INCIDENT 4
+
+### Two Engineers Running Terraform Simultaneously
+
+**Incident**
+
+Infrastructure drift and resource duplication occurred.
+
+**Root Cause**
+
+State locking not enabled.
+
+**Fix**
+
+Enable locking with DynamoDB.
+
+---
+
+# INCIDENT 5
+
+### AWS API Throttling During Deployment
+
+**Incident**
+
+Terraform apply failed with:
+
+```
+ThrottlingException
+```
+
+**Root Cause**
+
+Too many parallel API calls.
+
+**Fix**
+
+```
+terraform apply -parallelism=5
+```
+
+---
+
+# INCIDENT 6
+
+### Infrastructure Drift Detected
+
+**Incident**
+
+Security group modified manually.
+
+**Root Cause**
+
+Console change bypassing Terraform.
+
+**Fix**
+
+Run:
+
+```
+terraform plan
+```
+
+Then reapply.
+
+---
+
+# INCIDENT 7
+
+### Duplicate S3 Buckets Created
+
+**Incident**
+
+Multiple buckets created.
+
+**Root Cause**
+
+Misconfigured `count`.
+
+**Fix**
+
+Use `for_each`.
+
+---
+
+# INCIDENT 8
+
+### Production EC2 Instance Recreated
+
+**Incident**
+
+Downtime occurred.
+
+**Root Cause**
+
+AMI update triggered replacement.
+
+**Fix**
+
+Rolling deployment strategy.
+
+---
+
+# INCIDENT 9
+
+### Terraform Pipeline Failed Due to Expired AWS Credentials
+
+**Root Cause**
+
+Static credentials in pipeline.
+
+**Fix**
+
+Use IAM roles.
+
+---
+
+# INCIDENT 10
+
+### Terraform Backend Access Denied
+
+**Incident**
+
+Remote state not accessible.
+
+**Root Cause**
+
+IAM permissions missing.
+
+**Fix**
+
+Grant:
+
+```
+s3:GetObject
+s3:PutObject
+```
+
+---
+
+# INCIDENT 11
+
+### Azure Resource Creation Failed
+
+**Error**
+
+```
+AuthorizationFailed
+```
+
+**Root Cause**
+
+Service principal lacked role.
+
+**Fix**
+
+Assign **Contributor** role.
+
+---
+
+# INCIDENT 12
+
+### Azure Storage Backend Unreachable
+
+**Root Cause**
+
+Firewall blocking CI runner.
+
+**Fix**
+
+Allow runner IP.
+
+---
+
+# INCIDENT 13
+
+### Azure Storage Account Name Conflict
+
+**Root Cause**
+
+Global namespace.
+
+**Fix**
+
+Use random suffix.
+
+---
+
+# INCIDENT 14
+
+### Azure VM Not Reachable
+
+**Root Cause**
+
+Network Security Group missing SSH rule.
+
+**Fix**
+
+Open port 22.
+
+---
+
+# INCIDENT 15
+
+### Azure Terraform Apply Timeout
+
+**Root Cause**
+
+Large resource provisioning.
+
+**Fix**
+
+Increase timeout.
+
+---
+
+# INCIDENT 16
+
+### Kubernetes Cluster Not Reachable
+
+**Error**
+
+```
+Kubernetes cluster unreachable
+```
+
+**Root Cause**
+
+Kubeconfig misconfigured.
+
+**Fix**
+
+Configure provider.
+
+---
+
+# INCIDENT 17
+
+### Terraform Deployed Kubernetes Resources Before Cluster
+
+**Root Cause**
+
+Missing dependency.
+
+**Fix**
+
+```
+depends_on
+```
+
+---
+
+# INCIDENT 18
+
+### Kubernetes Namespace Already Exists
+
+**Fix**
+
+Import resource.
+
+---
+
+# INCIDENT 19
+
+### Pods Failing After Terraform Deployment
+
+**Root Cause**
+
+Incorrect CPU limits.
+
+**Fix**
+
+Adjust resource requests.
+
+---
+
+# INCIDENT 20
+
+### Terraform Deleted Running Pods
+
+**Root Cause**
+
+Immutable field change.
+
+**Fix**
+
+Rolling updates.
+
+---
+
+# INCIDENT 21
+
+### Terraform State Lock Stuck
+
+**Fix**
+
+```
+terraform force-unlock
+```
+
+---
+
+# INCIDENT 22
+
+### Terraform Apply Very Slow
+
+**Root Cause**
+
+Huge state file.
+
+**Fix**
+
+Split into modules.
+
+---
+
+# INCIDENT 23
+
+### Terraform Module Cyclic Dependency
+
+**Error**
+
+```
+Cycle detected
+```
+
+**Fix**
+
+Refactor modules.
+
+---
+
+# INCIDENT 24
+
+### Secrets Exposed in Terraform State
+
+**Root Cause**
+
+Plaintext variables.
+
+**Fix**
+
+Use secret managers.
+
+---
+
+# INCIDENT 25
+
+### Terraform Pipeline Using Wrong Workspace
+
+**Fix**
+
+```
+terraform workspace select prod
+```
+
+---
+
+# INCIDENT 26
+
+### CI/CD Terraform Version Mismatch
+
+**Root Cause**
+
+Different Terraform versions.
+
+**Fix**
+
+Use version pinning.
+
+---
+
+# INCIDENT 27
+
+### Terraform Creating Resources in Wrong Region
+
+**Root Cause**
+
+Provider misconfiguration.
+
+**Fix**
+
+```
+region = "ap-south-1"
+```
+
+---
+
+# INCIDENT 28
+
+### Kubernetes Helm Release Failed
+
+**Root Cause**
+
+Helm chart version mismatch.
+
+**Fix**
+
+Update chart.
+
+---
+
+# INCIDENT 29
+
+### Terraform Destroy Removed Kubernetes Cluster
+
+**Root Cause**
+
+Cluster and apps in same state.
+
+**Fix**
+
+Separate state files.
+
+---
+
+# INCIDENT 30
+
+### Terraform Graph Debugging Needed
+
+**Fix**
+
+```
+terraform graph
+```
+
+---
+
+# INCIDENT 31
+
+### Multi-Region Infrastructure Misconfigured
+
+**Fix**
+
+Use provider aliases.
+
+---
+
+# INCIDENT 32
+
+### Blue-Green Deployment Failed
+
+**Root Cause**
+
+Load balancer not updated.
+
+**Fix**
+
+Update target groups.
+
+---
+
+# INCIDENT 33
+
+### Zero Downtime Deployment Failed
+
+**Fix**
+
+Use:
+
+```
+create_before_destroy
+```
+
+---
+
+# INCIDENT 34
+
+### Terraform Apply Interrupted
+
+**Fix**
+
+Re-run `terraform apply`.
+
+---
+
+# INCIDENT 35
+
+### Terraform Backend Reinitialization Required
+
+**Fix**
+
+```
+terraform init -reconfigure
+```
+
+---
+
+# INCIDENT 36
+
+### Terraform Import Incorrect Resource ID
+
+**Fix**
+
+Check cloud resource ID.
+
+---
+
+# INCIDENT 37
+
+### Terraform Plan Shows Changes Every Time
+
+**Root Cause**
+
+Dynamic attributes.
+
+**Fix**
+
+Use:
+
+```
+ignore_changes
+```
+
+---
+
+# INCIDENT 38
+
+### Terraform Remote State Corrupted
+
+**Fix**
+
+Restore backup state.
+
+---
+
+# INCIDENT 39
+
+### Kubernetes Service Not Accessible
+
+**Root Cause**
+
+Load balancer not created.
+
+**Fix**
+
+Update service type.
+
+---
+
+# INCIDENT 40
+
+### Terraform Apply Hanging
+
+**Fix**
+
+Enable logs.
+
+```
+TF_LOG=DEBUG
+```
+
+---
+
+# INCIDENT 41–50 (Common Large-Scale Incidents)
+
+41. Terraform state file merge conflicts
+42. Provider plugin crash
+43. Azure subscription quota exceeded
+44. AWS VPC CIDR conflict
+45. Kubernetes cluster autoscaler misconfigured
+46. Terraform workspace deleted accidentally
+47. Terraform provider breaking change
+48. Backend authentication failure
+49. Terraform module registry outage
+50. Terraform dependency misconfiguration
+
+---
+
+# Senior DevOps Interview Tip
+
+When explaining **production incidents**, structure answers like:
+
+**Incident → Root Cause → Resolution → Prevention**
+
+Example answer:
+
+> During a production deployment using Terraform, the pipeline attempted to recreate several EC2 instances because the AMI changed. This caused downtime. We rolled back to the previous AMI, implemented rolling deployments, and added `create_before_destroy` to prevent future downtime.
+
+---
+
