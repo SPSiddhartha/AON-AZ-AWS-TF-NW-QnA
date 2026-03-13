@@ -1,0 +1,648 @@
+Below are **Azure CDN DevOps Interview Questions & Real Production Scenarios** suitable for **6+ years DevOps engineers**.
+
+---
+
+# 1️⃣ Intermediate Azure CDN Interview Q&A (10)
+
+### 1. Q: What is Azure CDN and why is it used?
+
+**A:** Azure CDN is a global content delivery network that caches static content at edge locations close to users to reduce latency and improve performance.
+
+---
+
+### 2. Q: What types of content are typically cached in Azure CDN?
+
+**A:**
+
+* Images
+* CSS / JavaScript
+* Static HTML
+* Video files
+* Downloadable files
+
+---
+
+### 3. Q: What are the different Azure CDN providers?
+
+**A:**
+
+* Standard Microsoft
+* Standard Akamai
+* Standard Verizon
+* Premium Verizon
+
+---
+
+### 4. Q: What is a CDN endpoint?
+
+**A:**
+An endpoint is a CDN configuration where origin server and caching rules are defined.
+
+Example:
+
+```
+https://myapp.azureedge.net
+```
+
+---
+
+### 5. Q: What is an origin in Azure CDN?
+
+**A:**
+The origin is the backend server where the CDN fetches content.
+
+Examples:
+
+* Azure Blob Storage
+* Azure Web App
+* Azure VM
+* External web server
+
+---
+
+### 6. Q: What is CDN caching?
+
+**A:**
+CDN caching stores static content in edge servers so that users receive data from the nearest location.
+
+---
+
+### 7. Q: What is cache expiration?
+
+**A:**
+It defines how long CDN keeps content before refreshing from the origin.
+
+Example:
+
+```
+Cache-Control: max-age=3600
+```
+
+---
+
+### 8. Q: What is CDN purge?
+
+**A:**
+Purge clears cached content from CDN edge nodes.
+
+Example command:
+
+```
+az cdn endpoint purge \
+--resource-group rg-prod \
+--profile-name cdn-prod \
+--name endpoint1 \
+--content-paths "/*"
+```
+
+---
+
+### 9. Q: What is CDN compression?
+
+**A:**
+Compression reduces file size before delivery to improve page load speed.
+
+Supported:
+
+* GZIP
+* Brotli
+
+---
+
+### 10. Q: What is geo-filtering in Azure CDN?
+
+**A:**
+Geo-filtering restricts content access based on country/region.
+
+Example:
+Allow only:
+
+* US
+* UK
+
+---
+
+# 2️⃣ Real DevOps Production Incidents (10)
+
+---
+
+## 1 Incident: Website still showing old images after deployment
+
+**Issue**
+
+After new deployment, users still see old images.
+
+**Root Cause**
+
+CDN cache still holding old files.
+
+**Fix**
+
+Run purge.
+
+```
+az cdn endpoint purge \
+--profile-name prod-cdn \
+--name web-endpoint \
+--content-paths "/images/*"
+```
+
+---
+
+## 2 Incident: CDN returning 404 error
+
+**Issue**
+
+Users get:
+
+```
+404 Not Found
+```
+
+**Root Cause**
+
+Origin path misconfigured.
+
+Example
+
+```
+Origin: storageaccount.blob.core.windows.net
+```
+
+Missing container.
+
+**Fix**
+
+Correct origin path.
+
+```
+storageaccount.blob.core.windows.net/images
+```
+
+---
+
+## 3 Incident: CDN not updating after origin update
+
+**Issue**
+
+Content updated in storage but CDN serving old content.
+
+**Root Cause**
+
+Cache TTL too high.
+
+Example
+
+```
+Cache-Control: max-age=86400
+```
+
+**Fix**
+
+Reduce TTL or purge.
+
+---
+
+## 4 Incident: CDN slow response for users in Asia
+
+**Issue**
+
+High latency from Asia region.
+
+**Root Cause**
+
+Origin located in single region without proper edge caching.
+
+**Fix**
+
+Enable:
+
+* CDN caching
+* multi-region origin
+
+---
+
+## 5 Incident: CSS not loading from CDN
+
+**Issue**
+
+Website layout broken.
+
+**Root Cause**
+
+MIME type missing.
+
+Example
+
+```
+text/css
+```
+
+**Fix**
+
+Update storage metadata.
+
+---
+
+## 6 Incident: CDN blocked users unexpectedly
+
+**Issue**
+
+Users from some countries cannot access site.
+
+**Root Cause**
+
+Geo filtering rule misconfigured.
+
+Example
+
+```
+Blocked: IN
+```
+
+**Fix**
+
+Update rules engine.
+
+---
+
+## 7 Incident: CDN returning 503
+
+**Issue**
+
+CDN edge returns:
+
+```
+503 Service unavailable
+```
+
+**Root Cause**
+
+Origin server down.
+
+**Fix**
+
+Check origin health:
+
+```
+curl originserver.com
+```
+
+Restart backend.
+
+---
+
+## 8 Incident: SSL certificate error on CDN endpoint
+
+**Issue**
+
+Browser shows:
+
+```
+NET::ERR_CERT_COMMON_NAME_INVALID
+```
+
+**Root Cause**
+
+Custom domain certificate expired.
+
+**Fix**
+
+Renew certificate via Azure managed SSL.
+
+---
+
+## 9 Incident: CDN not caching files
+
+**Issue**
+
+Every request hitting origin.
+
+**Root Cause**
+
+Header disabling cache.
+
+Example
+
+```
+Cache-Control: no-cache
+```
+
+**Fix**
+
+Change header.
+
+```
+Cache-Control: public, max-age=3600
+```
+
+---
+
+## 10 Incident: CDN purge taking too long
+
+**Issue**
+
+Large purge operation slow.
+
+**Root Cause**
+
+Purging entire endpoint.
+
+```
+/*
+```
+
+**Fix**
+
+Purge only required paths.
+
+---
+
+# 3️⃣ Advanced Azure CDN Production Troubleshooting (15)
+
+---
+
+## 1. CDN caching dynamic API responses
+
+**Problem**
+
+API responses cached causing wrong data.
+
+Example
+
+```
+/api/orders
+```
+
+**Fix**
+
+Disable caching for API routes.
+
+Example rule:
+
+```
+If URL contains /api
+Cache: bypass
+```
+
+---
+
+## 2. CDN origin timeout
+
+**Problem**
+
+Users receive:
+
+```
+504 Gateway Timeout
+```
+
+**Cause**
+
+Origin slow or overloaded.
+
+**Fix**
+
+Increase origin timeout.
+
+Also scale backend.
+
+---
+
+## 3. CDN cache poisoning
+
+**Problem**
+
+Malicious headers causing incorrect cache.
+
+**Example**
+
+```
+Host header manipulation
+```
+
+**Fix**
+
+Enable header validation.
+
+---
+
+## 4. CDN purge automation failure
+
+**Problem**
+
+CI/CD pipeline deploys new build but CDN not refreshed.
+
+**Fix**
+
+Add purge step.
+
+Example in pipeline:
+
+```
+az cdn endpoint purge \
+--content-paths "/*"
+```
+
+---
+
+## 5. CDN not honoring cache headers
+
+**Problem**
+
+Even with headers, caching not happening.
+
+**Cause**
+
+CDN rule override.
+
+**Fix**
+
+Check rules engine.
+
+---
+
+## 6. High origin traffic despite CDN
+
+**Problem**
+
+Origin overloaded.
+
+**Cause**
+
+Query string caching disabled.
+
+Example
+
+```
+/image.png?version=2
+```
+
+**Fix**
+
+Enable query string caching.
+
+---
+
+## 7. CDN failing with custom domain
+
+**Problem**
+
+Custom domain not resolving.
+
+Example
+
+```
+cdn.mycompany.com
+```
+
+**Fix**
+
+Verify DNS CNAME.
+
+```
+cdn.mycompany.com → myendpoint.azureedge.net
+```
+
+---
+
+## 8. CDN edge node not refreshing content
+
+**Problem**
+
+Some regions show old content.
+
+**Fix**
+
+Run global purge.
+
+---
+
+## 9. CDN compression not working
+
+**Problem**
+
+Large files delivered uncompressed.
+
+**Fix**
+
+Enable compression for MIME types.
+
+Example
+
+```
+text/html
+application/javascript
+text/css
+```
+
+---
+
+## 10. CDN security attack (DDoS)
+
+**Problem**
+
+Huge traffic spike.
+
+**Fix**
+
+Integrate with:
+
+* Azure Front Door
+* Azure WAF
+* Azure DDoS protection
+
+---
+
+## 11. CDN failing with private storage
+
+**Problem**
+
+Blob storage private but CDN needs access.
+
+**Fix**
+
+Use:
+
+```
+SAS token
+```
+
+or
+
+```
+Private origin + Managed Identity
+```
+
+---
+
+## 12. CDN rules engine misconfiguration
+
+**Problem**
+
+Redirect loop.
+
+Example
+
+```
+HTTP → HTTPS redirect
+```
+
+configured twice.
+
+**Fix**
+
+Correct rule order.
+
+---
+
+## 13. CDN caching sensitive files
+
+**Problem**
+
+Private user data cached.
+
+**Fix**
+
+Add header:
+
+```
+Cache-Control: private
+```
+
+---
+
+## 14. CDN cost unexpectedly high
+
+**Problem**
+
+Large outbound bandwidth.
+
+**Fix**
+
+Optimize:
+
+* caching rules
+* compression
+* image optimization
+
+---
+
+## 15. CDN edge certificate mismatch
+
+**Problem**
+
+SSL errors for custom domain.
+
+**Fix**
+
+Rebind certificate.
+
+Steps
+
+1. Remove domain
+2. Add domain again
+3. Enable managed certificate
+
+---
+
