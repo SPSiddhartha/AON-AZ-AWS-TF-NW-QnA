@@ -1,0 +1,638 @@
+## **Terraform + Azure AKS + Azure DevOps – DevOps Interview Q&A**
+
+---
+
+# **1️⃣ 10 Intermediate Q&A**
+
+**Q1. How do you deploy an AKS cluster using Terraform?**
+**A:** Use the `azurerm_kubernetes_cluster` resource in Terraform. It defines node pools, networking, identity, and RBAC settings.
+
+Example:
+
+```hcl
+resource "azurerm_kubernetes_cluster" "aks" {
+  name                = "prod-aks"
+  location            = "East US"
+  resource_group_name = azurerm_resource_group.rg.name
+  dns_prefix          = "prodaks"
+
+  default_node_pool {
+    name       = "system"
+    node_count = 3
+    vm_size    = "Standard_D4s_v3"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+```
+
+---
+
+**Q2. How do you manage Terraform state securely in Azure DevOps?**
+**A:** Use **Azure Storage Account Remote Backend** with state locking.
+
+Example:
+
+```hcl
+terraform {
+ backend "azurerm" {
+   resource_group_name  = "tf-state-rg"
+   storage_account_name = "tfstateprod"
+   container_name       = "tfstate"
+   key                  = "aks-prod.tfstate"
+ }
+}
+```
+
+---
+
+**Q3. How do you integrate Terraform with Azure DevOps pipelines?**
+**A:** Use pipeline stages:
+
+1. Terraform Init
+2. Terraform Validate
+3. Terraform Plan
+4. Terraform Apply
+
+Example pipeline tasks:
+
+```
+TerraformCLI@0
+command: init
+```
+
+```
+TerraformCLI@0
+command: plan
+```
+
+```
+TerraformCLI@0
+command: apply
+```
+
+---
+
+**Q4. How do you manage multiple AKS environments with Terraform?**
+**A:** Use **workspaces or environment-based variable files**.
+
+Example:
+
+```
+terraform workspace new dev
+terraform workspace new prod
+```
+
+or
+
+```
+terraform apply -var-file=prod.tfvars
+```
+
+---
+
+**Q5. What is the best way to manage AKS secrets in Terraform?**
+**A:** Store secrets in **Azure Key Vault** and reference them in Terraform.
+
+Example:
+
+```hcl
+data "azurerm_key_vault_secret" "dbpass" {
+ name         = "db-password"
+ key_vault_id = azurerm_key_vault.kv.id
+}
+```
+
+---
+
+**Q6. How do you enable autoscaling for AKS node pools using Terraform?**
+
+```hcl
+default_node_pool {
+ name       = "system"
+ vm_size    = "Standard_D4s_v3"
+ min_count  = 2
+ max_count  = 6
+ enable_auto_scaling = true
+}
+```
+
+---
+
+**Q7. How do you restrict AKS API access in production?**
+**A:** Use **Private AKS cluster**.
+
+```hcl
+private_cluster_enabled = true
+```
+
+---
+
+**Q8. How do you manage Terraform modules for AKS deployments?**
+**A:** Create reusable modules:
+
+```
+modules/
+   aks/
+   vnet/
+   monitoring/
+```
+
+Example:
+
+```hcl
+module "aks_cluster" {
+ source = "./modules/aks"
+}
+```
+
+---
+
+**Q9. How do you perform zero-downtime upgrades of AKS using Terraform?**
+
+Use **node pool rolling upgrade strategy**.
+
+```hcl
+upgrade_settings {
+ max_surge = "33%"
+}
+```
+
+---
+
+**Q10. How do you deploy Kubernetes resources after Terraform creates AKS?**
+
+Use **Terraform Kubernetes provider**.
+
+```hcl
+provider "kubernetes" {
+ host = azurerm_kubernetes_cluster.aks.kube_config.0.host
+}
+```
+
+---
+
+# **2️⃣ 10 Real DevOps Production Incidents**
+
+---
+
+### **Incident 1: Terraform Destroy Deleted Production AKS**
+
+**Issue**
+
+Engineer accidentally executed:
+
+```
+terraform destroy
+```
+
+in production pipeline.
+
+**Impact**
+
+AKS cluster and all nodes deleted.
+
+**Root Cause**
+
+No environment protection in Azure DevOps.
+
+**Fix**
+
+Implemented:
+
+* Manual approval gate
+* Separate prod pipeline
+* `prevent_destroy`
+
+Example:
+
+```hcl
+lifecycle {
+ prevent_destroy = true
+}
+```
+
+---
+
+### **Incident 2: AKS Nodes Not Joining Cluster**
+
+**Issue**
+
+After Terraform deployment nodes were **NotReady**.
+
+**Root Cause**
+
+NSG blocked port **10250 and 443**.
+
+**Fix**
+
+Updated NSG rules.
+
+---
+
+### **Incident 3: Terraform State Corruption**
+
+**Issue**
+
+Multiple engineers ran Terraform simultaneously.
+
+**Impact**
+
+State file corrupted.
+
+**Root Cause**
+
+Local backend.
+
+**Fix**
+
+Moved to **Azure Storage backend with locking**.
+
+---
+
+### **Incident 4: Azure DevOps Pipeline Timeout**
+
+**Issue**
+
+Terraform apply stuck for **45 minutes**.
+
+**Root Cause**
+
+AKS node pool scaling.
+
+**Fix**
+
+Increase pipeline timeout and enable async operations.
+
+---
+
+### **Incident 5: AKS Ingress Not Accessible**
+
+**Issue**
+
+Application deployed but LB not accessible.
+
+**Root Cause**
+
+Missing outbound IP configuration.
+
+**Fix**
+
+Configured **Standard Load Balancer**.
+
+---
+
+### **Incident 6: Terraform Module Version Conflict**
+
+**Issue**
+
+AKS module update broke pipeline.
+
+**Root Cause**
+
+Module version not pinned.
+
+**Fix**
+
+Pin module version.
+
+```
+version = "3.5.0"
+```
+
+---
+
+### **Incident 7: Azure DevOps Service Principal Expired**
+
+**Issue**
+
+Pipeline failed authentication.
+
+Error:
+
+```
+AADSTS7000222: client secret expired
+```
+
+**Fix**
+
+Rotated secret and moved to **Managed Identity**.
+
+---
+
+### **Incident 8: AKS Node Pool Scaling Failure**
+
+**Root Cause**
+
+Quota limit exceeded.
+
+```
+Standard_DSv3 Family vCPU quota reached
+```
+
+**Fix**
+
+Requested quota increase.
+
+---
+
+### **Incident 9: Terraform Drift Detected**
+
+Manual changes in Azure portal modified node count.
+
+**Fix**
+
+Used
+
+```
+terraform plan
+```
+
+to detect drift and reapply configuration.
+
+---
+
+### **Incident 10: AKS Cluster Upgrade Failure**
+
+**Root Cause**
+
+Deprecated Kubernetes version.
+
+**Fix**
+
+Updated Terraform config:
+
+```
+kubernetes_version = "1.28"
+```
+
+---
+
+# **3️⃣ 15 Advanced Production Troubleshooting Scenarios**
+
+---
+
+# **TS1: AKS Cluster Creation Fails in Terraform**
+
+**Error**
+
+```
+Error: AgentPoolKubernetesVersionNotSupported
+```
+
+**Example**
+
+AKS version mismatch with region.
+
+**Fix**
+
+Check supported versions.
+
+```
+az aks get-versions --location eastus
+```
+
+---
+
+# **TS2: Azure DevOps Terraform Pipeline Authentication Failure**
+
+**Error**
+
+```
+Error acquiring authorization token
+```
+
+**Root Cause**
+
+Service connection permission removed.
+
+**Fix**
+
+Reauthorize service connection.
+
+---
+
+# **TS3: Terraform State Lock Issue**
+
+**Error**
+
+```
+Error acquiring state lock
+```
+
+**Fix**
+
+```
+terraform force-unlock LOCK_ID
+```
+
+---
+
+# **TS4: AKS Pods Stuck Pending**
+
+**Root Cause**
+
+Insufficient node resources.
+
+**Fix**
+
+Scale node pool.
+
+---
+
+# **TS5: Terraform Apply Stuck at AKS Node Pool Creation**
+
+**Root Cause**
+
+Subnet IP exhaustion.
+
+**Example**
+
+AKS requires:
+
+```
+30 IPs per node
+```
+
+**Fix**
+
+Increase subnet CIDR.
+
+---
+
+# **TS6: Azure DevOps Pipeline Cannot Access Terraform State**
+
+**Root Cause**
+
+Storage account firewall blocking pipeline agent.
+
+**Fix**
+
+Allow Azure DevOps IP.
+
+---
+
+# **TS7: AKS LoadBalancer Not Getting Public IP**
+
+**Root Cause**
+
+Public IP quota exceeded.
+
+**Fix**
+
+Increase subscription quota.
+
+---
+
+# **TS8: AKS Cluster DNS Resolution Failure**
+
+Pods unable to resolve services.
+
+**Root Cause**
+
+CoreDNS crash.
+
+**Fix**
+
+Restart:
+
+```
+kubectl rollout restart deployment coredns
+```
+
+---
+
+# **TS9: Terraform Plan Showing Constant Changes**
+
+Example:
+
+```
+~ node_count: 3 -> 3
+```
+
+**Root Cause**
+
+Azure API drift.
+
+**Fix**
+
+Use lifecycle ignore.
+
+```hcl
+lifecycle {
+ ignore_changes = [node_count]
+}
+```
+
+---
+
+# **TS10: Azure DevOps Pipeline Terraform Plugin Failure**
+
+**Error**
+
+```
+TerraformCLI task not found
+```
+
+**Fix**
+
+Install extension:
+
+Azure DevOps → Marketplace → Terraform extension.
+
+---
+
+# **TS11: AKS Private Cluster Terraform Deployment Failure**
+
+**Root Cause**
+
+DNS zone misconfiguration.
+
+**Fix**
+
+Create private DNS zone.
+
+---
+
+# **TS12: Terraform Apply Destroyed Node Pool**
+
+**Root Cause**
+
+Name change in Terraform.
+
+Terraform interpreted as new resource.
+
+**Fix**
+
+Use:
+
+```
+terraform state mv
+```
+
+---
+
+# **TS13: AKS API Server Throttling**
+
+**Error**
+
+```
+Too many requests
+```
+
+**Fix**
+
+Reduce Terraform parallelism.
+
+```
+terraform apply -parallelism=5
+```
+
+---
+
+# **TS14: Terraform Provider Version Conflict**
+
+Error:
+
+```
+provider version constraints conflict
+```
+
+**Fix**
+
+Specify provider version.
+
+```hcl
+required_providers {
+ azurerm = {
+   version = "~>3.80"
+ }
+}
+```
+
+---
+
+# **TS15: Azure DevOps Pipeline Destroyed Dev Infrastructure**
+
+**Root Cause**
+
+Wrong workspace used.
+
+```
+terraform workspace select prod
+```
+
+**Fix**
+
+Add workspace validation step in pipeline.
+
+---
+
+✅ If you want, I can also share **next-level DevOps content used by Senior Engineers:**
+
+* **30 AKS + Terraform Production War Stories**
+* **20 Azure DevOps Pipeline Failures in Real Production**
+* **Complete Terraform AKS Architecture used in Large Enterprises**
+* **AKS + Terraform + Azure DevOps End-to-End CI/CD Architecture** (very common in interviews).
