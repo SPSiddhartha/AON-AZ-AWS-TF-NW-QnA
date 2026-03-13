@@ -1,0 +1,629 @@
+Here are **Azure Monitor Interview Q&A for a DevOps Engineer (6+ Years Experience)** focusing on **real production scenarios and troubleshooting**.
+
+---
+
+# Azure Monitor – DevOps Interview Q&A
+
+---
+
+# 1️⃣ Basic Questions (5)
+
+### 1. What is Azure Monitor?
+
+**Answer:**
+Azure Monitor is a **monitoring and observability platform in Azure** used to collect, analyze, and act on telemetry data from cloud and on-premises environments.
+
+It collects:
+
+* Metrics
+* Logs
+* Application telemetry
+
+Main components:
+
+* Metrics
+* Logs (Log Analytics)
+* Alerts
+* Dashboards
+* Application Insights
+
+---
+
+### 2. What are the main data sources for Azure Monitor?
+
+**Answer**
+
+Azure Monitor collects data from:
+
+1. Azure resources (VM, AKS, Storage)
+2. Applications (via Application Insights)
+3. OS metrics
+4. Custom logs
+5. Guest OS logs
+6. On-prem servers
+
+---
+
+### 3. What is Log Analytics?
+
+**Answer**
+
+Azure Log Analytics
+
+Log Analytics is a **service used to store and query log data** using **KQL (Kusto Query Language)**.
+
+Used for:
+
+* Troubleshooting
+* Security analysis
+* Performance monitoring
+
+Example Query:
+
+```kql
+AzureActivity
+| where OperationName == "Create Virtual Machine"
+```
+
+---
+
+### 4. What are Azure Monitor Metrics?
+
+**Answer**
+
+Metrics are **numeric values collected at regular intervals** that describe system performance.
+
+Examples:
+
+* CPU usage
+* Disk IOPS
+* Network traffic
+
+Metrics are stored in a **time-series database**.
+
+---
+
+### 5. What are Alerts in Azure Monitor?
+
+**Answer**
+
+Alerts notify when a condition is met.
+
+Types:
+
+* Metric Alerts
+* Log Alerts
+* Activity Log Alerts
+* Smart Detection Alerts
+
+Notifications:
+
+* Email
+* SMS
+* Webhooks
+* ITSM tools
+
+---
+
+# 2️⃣ Intermediate Questions (10)
+
+---
+
+### 1. What is the difference between Metrics and Logs?
+
+**Answer**
+
+| Metrics              | Logs                     |
+| -------------------- | ------------------------ |
+| Numeric values       | Detailed event records   |
+| Lightweight          | Detailed troubleshooting |
+| Real-time monitoring | Root cause analysis      |
+| Stored short-term    | Stored longer            |
+
+Example:
+
+Metric
+CPU = 80%
+
+Log
+Which process caused CPU spike.
+
+---
+
+### 2. What is a Log Analytics Workspace?
+
+**Answer**
+
+It is a **central storage location where logs are stored and queried**.
+
+Features:
+
+* KQL queries
+* Cross-resource queries
+* Integration with alerts
+
+Example Query:
+
+```kql
+Perf
+| where CounterName == "% Processor Time"
+| summarize avg(CounterValue) by Computer
+```
+
+---
+
+### 3. What is Application Insights?
+
+**Answer**
+
+Azure Application Insights
+
+Application Insights monitors **application performance and availability**.
+
+Tracks:
+
+* Requests
+* Exceptions
+* Dependencies
+* Response time
+
+Used heavily for:
+
+* .NET
+* Java
+* Node.js apps
+
+---
+
+### 4. What is Azure Monitor Agent (AMA)?
+
+**Answer**
+
+Azure Monitor Agent
+
+AMA collects logs and metrics from VMs and sends them to **Log Analytics workspace**.
+
+Replaces older agents:
+
+* Log Analytics Agent
+* Diagnostic extension
+
+---
+
+### 5. What is a Data Collection Rule (DCR)?
+
+**Answer**
+
+A **Data Collection Rule** defines:
+
+* What data to collect
+* Where to send it
+* How to transform it
+
+Example:
+
+Collect:
+
+* Syslog
+* Windows Event logs
+
+Send to:
+
+* Log Analytics
+
+---
+
+### 6. What is Azure Monitor Workbooks?
+
+**Answer**
+
+Workbooks provide **interactive dashboards for monitoring**.
+
+Used for:
+
+* Visualizing logs
+* Combining metrics + logs
+* Troubleshooting production issues
+
+---
+
+### 7. What is a Metric Alert?
+
+**Answer**
+
+Metric alerts trigger when **metric threshold is crossed**.
+
+Example:
+
+CPU > 80% for 5 minutes.
+
+---
+
+### 8. What is an Action Group?
+
+**Answer**
+
+Action group defines **what happens when alert fires**.
+
+Examples:
+
+* Send email
+* Trigger webhook
+* Call Azure Function
+* Run Automation Runbook
+
+---
+
+### 9. What is Activity Log in Azure Monitor?
+
+**Answer**
+
+Azure Activity Log tracks **control plane operations**.
+
+Example:
+
+* VM creation
+* VM deletion
+* RBAC changes
+* Storage account updates
+
+---
+
+### 10. What is Diagnostic Settings?
+
+**Answer**
+
+Diagnostic settings allow Azure resources to send logs to:
+
+* Log Analytics
+* Event Hub
+* Storage Account
+
+---
+
+# 3️⃣ Real DevOps Production Incidents (10)
+
+---
+
+### 1. Production Incident: VM CPU suddenly spikes
+
+**Problem**
+
+Production VM CPU reached **95%**.
+
+**Investigation**
+
+Check metrics
+
+```kql
+Perf
+| where CounterName == "% Processor Time"
+```
+
+**Root Cause**
+
+Background cron job consuming CPU.
+
+**Fix**
+
+* Reschedule job
+* Add CPU alert
+
+---
+
+### 2. Production Incident: AKS pods crashing frequently
+
+**Problem**
+
+Pods restarting.
+
+**Investigation**
+
+```kql
+KubePodInventory
+| where PodStatus == "Failed"
+```
+
+**Root Cause**
+
+Memory leak in container.
+
+**Fix**
+
+* Increase memory
+* Fix application bug
+
+---
+
+### 3. Production Incident: Azure Storage latency high
+
+**Investigation**
+
+Metrics:
+
+* Success latency
+* Availability
+
+**Root Cause**
+
+Hot partition due to uneven key distribution.
+
+**Fix**
+
+* Use better partition key.
+
+---
+
+### 4. Production Incident: No logs appearing in Log Analytics
+
+**Root Cause**
+
+Azure Monitor Agent stopped.
+
+**Fix**
+
+Restart agent
+
+```
+systemctl restart azuremonitoragent
+```
+
+---
+
+### 5. Production Incident: Alert storms
+
+**Problem**
+
+100+ alerts triggered.
+
+**Root Cause**
+
+Alert threshold too low.
+
+**Fix**
+
+Use **dynamic thresholds**.
+
+---
+
+### 6. Production Incident: Application slow
+
+Using **Application Insights**
+
+Query:
+
+```kql
+requests
+| summarize avg(duration) by name
+```
+
+**Root Cause**
+
+Slow SQL query.
+
+---
+
+### 7. Production Incident: Disk full on VM
+
+Query:
+
+```kql
+Perf
+| where CounterName == "Free Megabytes"
+```
+
+**Root Cause**
+
+Log files not rotating.
+
+---
+
+### 8. Production Incident: Kubernetes node NotReady
+
+Logs:
+
+```kql
+KubeNodeInventory
+```
+
+**Root Cause**
+
+Node disk pressure.
+
+---
+
+### 9. Production Incident: Missing activity logs
+
+**Root Cause**
+
+Diagnostic settings disabled.
+
+---
+
+### 10. Production Incident: Memory leak detected
+
+Application Insights:
+
+```kql
+performanceCounters
+| where counterName == "Private Bytes"
+```
+
+---
+
+# 4️⃣ Advanced Production Troubleshooting (15)
+
+---
+
+### 1. Incident: Azure Monitor data ingestion delay
+
+**Problem**
+
+Logs delayed by **30 minutes**.
+
+**Root Cause**
+
+Heavy ingestion throttling.
+
+**Fix**
+
+* Split logs across workspaces
+* Reduce noisy logs
+
+---
+
+### 2. Incident: Log Analytics workspace cost spike
+
+**Problem**
+
+Billing increased drastically.
+
+**Investigation**
+
+```kql
+Usage
+| summarize sum(Quantity) by DataType
+```
+
+**Root Cause**
+
+Verbose debug logs.
+
+**Fix**
+
+Reduce log verbosity.
+
+---
+
+### 3. Incident: Application Insights not capturing telemetry
+
+**Root Cause**
+
+Instrumentation key missing.
+
+**Fix**
+
+Add:
+
+```
+APPINSIGHTS_INSTRUMENTATIONKEY
+```
+
+---
+
+### 4. Incident: Azure Monitor agent consuming high CPU
+
+**Root Cause**
+
+Too many performance counters.
+
+**Fix**
+
+Reduce collection frequency.
+
+---
+
+### 5. Incident: Logs missing from AKS
+
+**Root Cause**
+
+Container Insights disabled.
+
+**Fix**
+
+Enable monitoring.
+
+---
+
+### 6. Incident: Alert triggered but no notification
+
+**Root Cause**
+
+Action group misconfigured.
+
+---
+
+### 7. Incident: Log query very slow
+
+**Root Cause**
+
+Query scanning large dataset.
+
+**Fix**
+
+Use time filter.
+
+```kql
+| where TimeGenerated > ago(1h)
+```
+
+---
+
+### 8. Incident: Cross-resource queries failing
+
+**Root Cause**
+
+Workspace permissions issue.
+
+---
+
+### 9. Incident: Metric alert not triggering
+
+**Root Cause**
+
+Wrong aggregation type.
+
+Example:
+
+Average vs Maximum.
+
+---
+
+### 10. Incident: Application Insights high sampling
+
+**Root Cause**
+
+Adaptive sampling enabled.
+
+---
+
+### 11. Incident: Missing VM guest logs
+
+**Root Cause**
+
+AMA not configured in DCR.
+
+---
+
+### 12. Incident: Monitoring gaps during deployment
+
+**Root Cause**
+
+Agents restarting during upgrade.
+
+---
+
+### 13. Incident: Logs duplicated
+
+**Root Cause**
+
+Two agents sending logs.
+
+---
+
+### 14. Incident: KQL query returning partial results
+
+**Root Cause**
+
+Query timeout.
+
+---
+
+### 15. Incident: Kubernetes logs not visible
+
+**Root Cause**
+
+Log Analytics workspace disconnected.
+
+---
+
