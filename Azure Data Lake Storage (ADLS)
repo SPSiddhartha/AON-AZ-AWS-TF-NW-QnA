@@ -1,0 +1,541 @@
+Below are **Azure Data Lake Storage (ADLS) interview Q&A** tailored for a **DevOps Engineer with ~6+ years experience**. These include **basic, intermediate, and advanced production troubleshooting scenarios** that are commonly asked in **real DevOps/SRE interviews**.
+
+---
+
+# Azure Data Lake Storage (ADLS) Interview Q&A
+
+## Basic Level (10)
+
+### 1. What is Azure Data Lake Storage?
+
+**Answer:**
+Azure Data Lake Storage is a scalable storage service designed for **big data analytics workloads**. It is built on top of **Azure Blob Storage** and optimized for **high-throughput analytics**.
+
+**Key features**
+
+* Massive scalability
+* Hierarchical namespace
+* Secure data lake
+* Integration with analytics tools
+
+Example use case:
+
+* Storing logs for Spark analysis.
+
+---
+
+### 2. What are the versions of Azure Data Lake?
+
+**Answer**
+
+1. **ADLS Gen1** – legacy service.
+2. **ADLS Gen2** – built on **Azure Blob Storage** with hierarchical namespace.
+
+Most modern architectures use **ADLS Gen2**.
+
+---
+
+### 3. What is Hierarchical Namespace?
+
+**Answer**
+
+Hierarchical Namespace (HNS) allows **directory structure like a file system**.
+
+Example:
+
+```
+/logs/app1/2026/03/log1.json
+/logs/app2/2026/03/log2.json
+```
+
+Benefits:
+
+* Faster directory operations
+* File-level ACL support
+* Big data optimized.
+
+---
+
+### 4. What authentication methods are supported?
+
+ADLS supports:
+
+* Azure AD authentication
+* Shared Access Signature (SAS)
+* Storage account key
+* Managed identity
+
+Preferred for DevOps automation: **Managed Identity**.
+
+---
+
+### 5. What is the difference between Blob Storage and ADLS Gen2?
+
+| Feature             | Blob Storage | ADLS Gen2 |
+| ------------------- | ------------ | --------- |
+| File hierarchy      | No           | Yes       |
+| Analytics optimized | No           | Yes       |
+| ACL support         | Limited      | Yes       |
+
+---
+
+### 6. What is a Data Lake?
+
+A **data lake** is a centralized repository storing **structured and unstructured data**.
+
+Examples:
+
+* Logs
+* Images
+* Streaming data
+* JSON files
+
+---
+
+### 7. What are containers in ADLS?
+
+Containers are logical storage units similar to directories.
+
+Example:
+
+```
+storageaccount
+   └── container
+          └── folders/files
+```
+
+---
+
+### 8. What tools integrate with ADLS?
+
+Common integrations:
+
+* Azure Databricks
+* Azure Synapse Analytics
+* Azure Data Factory
+* Apache Spark
+
+---
+
+### 9. What is the storage tier in ADLS?
+
+Storage tiers:
+
+* Hot
+* Cool
+* Archive
+
+Example:
+
+* **Hot** → frequently accessed logs
+* **Archive** → historical data
+
+---
+
+### 10. How is data secured in ADLS?
+
+Security layers:
+
+1. Azure AD RBAC
+2. POSIX ACLs
+3. Encryption at rest
+4. Network firewall
+
+---
+
+# Intermediate Level (10)
+
+---
+
+### 1. What is POSIX ACL in ADLS?
+
+POSIX ACL allows **fine-grained file permissions**.
+
+Example:
+
+```
+user::rwx
+group::r-x
+other::---
+```
+
+Used for **data engineering pipelines** where different teams need access.
+
+---
+
+### 2. What is the difference between RBAC and ACL?
+
+| Feature | RBAC            | ACL         |
+| ------- | --------------- | ----------- |
+| Level   | Storage account | File/folder |
+| Control | Coarse          | Fine        |
+
+Example:
+
+* RBAC → storage admin
+* ACL → specific folder access
+
+---
+
+### 3. How does ADLS integrate with Spark?
+
+Spark clusters access ADLS using:
+
+```
+abfss://container@storageaccount.dfs.core.windows.net/
+```
+
+Example:
+
+```
+spark.read.parquet("abfss://logs@datalake.dfs.core.windows.net/2026/")
+```
+
+---
+
+### 4. What is ABFS driver?
+
+ABFS = **Azure Blob File System driver**
+
+It allows Hadoop-compatible access to ADLS.
+
+---
+
+### 5. What is soft delete in ADLS?
+
+Soft delete protects files from accidental deletion.
+
+Example:
+
+Deleted file can be restored within **X days retention**.
+
+---
+
+### 6. What is lifecycle management?
+
+Automated rule to move data across tiers.
+
+Example:
+
+```
+Hot → Cool after 30 days
+Cool → Archive after 90 days
+```
+
+---
+
+### 7. What is Data Lake Storage throughput?
+
+ADLS supports **high parallel throughput** using multiple partitions.
+
+Best practice:
+
+* Use large files
+* Parallel writes.
+
+---
+
+### 8. How do you mount ADLS in Databricks?
+
+Example:
+
+```
+dbutils.fs.mount(
+ source="abfss://logs@storage.dfs.core.windows.net/",
+ mount_point="/mnt/datalake",
+ extra_configs=configs)
+```
+
+---
+
+### 9. What monitoring tools are used?
+
+* Azure Monitor
+* Log Analytics
+* Storage metrics
+
+---
+
+### 10. What are common ADLS file formats?
+
+Big data formats:
+
+* Parquet
+* ORC
+* Avro
+* JSON
+* CSV
+
+---
+
+# Advanced Production Troubleshooting Scenarios (15)
+
+These are **real scenarios DevOps engineers handle in production.**
+
+---
+
+# 1. Spark Job Failing with Permission Error
+
+Error:
+
+```
+403 AuthorizationPermissionMismatch
+```
+
+Cause:
+
+* Missing ACL permissions.
+
+Fix:
+
+```
+setfacl -R -m user:spark:rwx /data
+```
+
+---
+
+# 2. Databricks Cannot Access ADLS
+
+Issue:
+Mount fails.
+
+Cause:
+Incorrect service principal credentials.
+
+Fix:
+
+```
+fs.azure.account.auth.type OAuth
+```
+
+---
+
+# 3. Slow Query Performance on ADLS
+
+Cause:
+
+* Too many small files.
+
+Example:
+
+```
+1M files of 1KB each
+```
+
+Solution:
+
+**Compaction**
+
+Example Spark job:
+
+```
+df.repartition(10).write.parquet()
+```
+
+---
+
+# 4. Storage Cost Suddenly Increased
+
+Cause:
+
+* Large volume logs stored in Hot tier.
+
+Solution:
+
+Lifecycle rule.
+
+```
+Move logs to cool after 7 days
+```
+
+---
+
+# 5. Data Pipeline Failing Intermittently
+
+Cause:
+
+Network throttling or request limits.
+
+Fix:
+
+Retry mechanism in pipeline.
+
+Example:
+
+```
+retry=3
+retry_interval=30s
+```
+
+---
+
+# 6. Azure Data Factory Copy Activity Failing
+
+Error:
+
+```
+Timeout connecting to ADLS
+```
+
+Cause:
+
+Firewall blocking integration runtime.
+
+Fix:
+
+Allow IP range.
+
+---
+
+# 7. Permission Works for Admin but Not User
+
+Cause:
+
+ACL inheritance missing.
+
+Fix:
+
+Apply recursively.
+
+```
+setfacl -R -m group:data:r-x
+```
+
+---
+
+# 8. Hadoop Job Cannot Access ADLS
+
+Cause:
+
+ABFS configuration missing.
+
+Fix:
+
+```
+fs.azure.account.key.storageaccount
+```
+
+---
+
+# 9. File Deletion by Mistake
+
+Solution:
+
+Restore using **soft delete**.
+
+Azure portal:
+
+```
+Storage → Deleted Files → Restore
+```
+
+---
+
+# 10. Spark Job Writing Duplicate Files
+
+Cause:
+
+Multiple concurrent writers.
+
+Solution:
+
+Use transactional formats.
+
+Example:
+
+* Delta Lake.
+
+---
+
+# 11. High Latency During Data Ingestion
+
+Cause:
+
+Single-thread uploads.
+
+Fix:
+
+Parallel upload using SDK.
+
+Example:
+
+```
+azcopy copy --recursive
+```
+
+---
+
+# 12. ADLS Storage Account Throttling
+
+Error:
+
+```
+429 Too many requests
+```
+
+Solution:
+
+* Increase partitions
+* Exponential backoff
+
+---
+
+# 13. Data Corruption in Lake
+
+Cause:
+
+Partial writes.
+
+Fix:
+
+Use **atomic rename pattern**.
+
+```
+write → temp → rename
+```
+
+---
+
+# 14. DevOps Pipeline Fails Uploading Artifacts
+
+Cause:
+
+SAS token expired.
+
+Fix:
+
+Regenerate SAS token.
+
+---
+
+# 15. Data Lake Governance Issue
+
+Problem:
+
+Unauthorized data access.
+
+Solution:
+
+* Use Azure AD groups
+* Enable auditing
+* Monitor logs in **Azure Monitor**
+
+---
+
+# DevOps Best Practices for ADLS
+
+1. Use **Parquet format**
+2. Avoid small files
+3. Implement lifecycle rules
+4. Use **Managed Identity**
+5. Enable logging and monitoring
+6. Use **data partitioning**
+
+Example:
+
+```
+/logs/year=2026/month=03/day=13/
+```
+
+---
+
