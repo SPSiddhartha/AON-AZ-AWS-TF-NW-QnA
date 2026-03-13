@@ -1,0 +1,764 @@
+Below are **Azure App Service Interview Questions & Answers** tailored for a **DevOps Engineer with ~6+ years experience**.
+I’ve included **Basic → Intermediate → Advanced Production Troubleshooting scenarios**, with **examples and explanations** useful for **real interviews and on-job debugging**.
+
+---
+
+# Azure App Service – DevOps Interview Q&A
+
+---
+
+# 1️⃣ Basic Level (10 Questions)
+
+### 1. What is Azure App Service?
+
+**Answer:**
+Azure App Service is a **Platform-as-a-Service (PaaS)** offering that allows developers to build, deploy, and scale **web apps, REST APIs, and mobile backends** without managing infrastructure.
+
+**Supported runtimes**
+
+* .NET
+* Java
+* Node.js
+* Python
+* PHP
+
+**Example**
+
+```
+Web App: ecommerce-api
+Runtime: Node.js
+Deployment: GitHub Actions
+Hosting: Azure App Service
+```
+
+---
+
+### 2. What are the types of Azure App Services?
+
+**Answer**
+
+1️⃣ Web Apps
+2️⃣ API Apps
+3️⃣ WebJobs
+4️⃣ Mobile Apps
+
+Example:
+
+```
+Frontend -> Web App
+Backend -> API App
+Background job -> WebJob
+```
+
+---
+
+### 3. What is an App Service Plan?
+
+**Answer**
+
+An **App Service Plan** defines:
+
+* CPU
+* RAM
+* Region
+* Pricing tier
+
+Multiple apps can run under the same plan.
+
+Example
+
+```
+App Service Plan: prod-plan
+Tier: P1v3
+Apps:
+ - payment-api
+ - order-api
+```
+
+---
+
+### 4. What is deployment slot?
+
+**Answer**
+
+Deployment slots allow **staging environments inside App Service**.
+
+Common slots:
+
+* Production
+* Staging
+* Testing
+
+Example workflow
+
+```
+Deploy -> Staging Slot
+Test -> Swap to Production
+```
+
+This provides **zero downtime deployment**.
+
+---
+
+### 5. What is autoscaling in Azure App Service?
+
+**Answer**
+
+Autoscaling automatically increases or decreases instances based on metrics.
+
+Metrics used:
+
+* CPU
+* Memory
+* HTTP queue length
+* Requests/sec
+
+Example rule
+
+```
+Scale out if CPU > 70% for 10 minutes
+Scale in if CPU < 30%
+```
+
+---
+
+### 6. What are App Settings?
+
+**Answer**
+
+App Settings are **environment variables for applications**.
+
+Example
+
+```
+DATABASE_URL=postgresql://dbserver
+API_KEY=xxxxx
+```
+
+They can be configured in:
+
+```
+App Service → Configuration → Application Settings
+```
+
+---
+
+### 7. What is Kudu in App Service?
+
+**Answer**
+
+Kudu provides:
+
+* Debug console
+* Process explorer
+* Deployment logs
+* File system access
+
+URL format
+
+```
+https://<appname>.scm.azurewebsites.net
+```
+
+---
+
+### 8. What is App Service Environment (ASE)?
+
+**Answer**
+
+Azure App Service Environment provides **isolated and secure hosting inside a VNet**.
+
+Used for:
+
+* Financial systems
+* High security workloads
+* Large enterprise applications
+
+---
+
+### 9. What deployment methods are supported?
+
+**Answer**
+
+Azure App Service supports:
+
+* GitHub Actions
+* Azure DevOps
+* Local Git
+* FTP
+* Zip deployment
+* Docker container
+
+Example
+
+```
+CI/CD
+GitHub → Build → Deploy → App Service
+```
+
+---
+
+### 10. What monitoring tools are used with App Service?
+
+**Answer**
+
+Common monitoring tools:
+
+* Azure Monitor
+* Application Insights
+* Log stream
+
+Example metrics
+
+```
+Response time
+Request rate
+Failure rate
+```
+
+---
+
+# 2️⃣ Intermediate Level (10 Questions)
+
+---
+
+### 1. How does scaling work in App Service?
+
+Two types:
+
+**Vertical scaling**
+
+```
+S1 → P1V3
+```
+
+**Horizontal scaling**
+
+```
+Instances: 2 → 5
+```
+
+---
+
+### 2. What is slot swapping?
+
+Slot swapping moves **staging environment to production**.
+
+Steps
+
+```
+Staging slot deployed
+Health check passed
+Swap staging → production
+```
+
+Benefits:
+
+* No downtime
+* Easy rollback
+
+---
+
+### 3. What is VNet integration?
+
+Azure Virtual Network integration allows App Service to connect to:
+
+* private databases
+* internal APIs
+
+Example
+
+```
+App Service → VNet → Azure SQL
+```
+
+---
+
+### 4. How do you secure an App Service?
+
+Security methods:
+
+* Managed identity
+* Private endpoint
+* HTTPS only
+* Authentication
+
+Example
+
+```
+Enable Azure AD authentication
+```
+
+---
+
+### 5. What is Managed Identity?
+
+Azure Managed Identity allows apps to authenticate without storing credentials.
+
+Example
+
+```
+App Service → Managed Identity → Access Key Vault
+```
+
+---
+
+### 6. How do you configure custom domains?
+
+Steps
+
+```
+1 Add domain in DNS
+2 Add CNAME record
+3 Bind domain to App Service
+```
+
+Example
+
+```
+api.company.com
+```
+
+---
+
+### 7. What are WebJobs?
+
+WebJobs run **background tasks inside App Service**.
+
+Example tasks:
+
+* Queue processing
+* Data sync
+* Scheduled jobs
+
+Example
+
+```
+Queue message → WebJob → Process order
+```
+
+---
+
+### 8. How does App Service handle containers?
+
+App Service can run:
+
+* Docker images
+* Containers from registry
+
+Example
+
+```
+Docker Hub
+Azure Container Registry
+```
+
+Example config
+
+```
+Image: myapp:v1
+Registry: ACR
+```
+
+---
+
+### 9. What is health check in App Service?
+
+Health check endpoint monitors instance health.
+
+Example
+
+```
+/health
+```
+
+If instance fails health check → removed from load balancer.
+
+---
+
+### 10. What is ARR affinity?
+
+ARR affinity ensures **session persistence**.
+
+Example
+
+```
+User session always routed to same instance
+```
+
+Useful for **stateful apps**.
+
+---
+
+# 3️⃣ Advanced Production Troubleshooting Scenarios (15)
+
+These are **real DevOps incident scenarios often asked in interviews.**
+
+---
+
+# 1. App Service returning 502 errors
+
+**Symptoms**
+
+```
+502 Bad Gateway
+```
+
+**Possible causes**
+
+* Application crash
+* Port misconfiguration
+* container not listening
+
+**Troubleshooting**
+
+```
+App Service Logs
+Container logs
+Kudu console
+```
+
+Example
+
+```
+Node app listening on port 5000
+App service expects port 80
+```
+
+Fix
+
+```
+WEBSITES_PORT=5000
+```
+
+---
+
+# 2. App Service CPU constantly 100%
+
+**Symptoms**
+
+```
+High CPU usage
+Slow response
+```
+
+Root causes
+
+* memory leak
+* infinite loop
+* heavy queries
+
+Fix
+
+```
+Scale out instances
+Profile application
+Optimize queries
+```
+
+---
+
+# 3. Deployment succeeded but site shows old code
+
+Cause
+
+```
+deployment cache issue
+```
+
+Fix
+
+```
+Restart App Service
+Clear deployment cache
+```
+
+Kudu command
+
+```
+rm -rf /home/site/wwwroot
+```
+
+---
+
+# 4. App Service slow response
+
+Check
+
+```
+Application Insights
+Dependency latency
+Database latency
+```
+
+Example
+
+```
+SQL query taking 5 seconds
+```
+
+Fix
+
+```
+Optimize DB queries
+Add caching
+```
+
+---
+
+# 5. App Service restart loop
+
+Symptoms
+
+```
+Container restarting repeatedly
+```
+
+Possible causes
+
+* startup script failure
+* wrong runtime
+
+Check logs
+
+```
+Container startup logs
+```
+
+---
+
+# 6. SSL certificate not working
+
+Problem
+
+```
+HTTPS failing
+```
+
+Check
+
+```
+TLS binding
+certificate expiry
+```
+
+Fix
+
+```
+Rebind certificate
+Renew SSL
+```
+
+---
+
+# 7. App Service cannot connect to database
+
+Common cause
+
+```
+Firewall rules
+VNet issue
+```
+
+Example
+
+```
+Azure SQL firewall blocking IP
+```
+
+Fix
+
+```
+Allow App Service outbound IP
+```
+
+---
+
+# 8. 503 Service Unavailable errors
+
+Root causes
+
+```
+App overload
+Instance crash
+Scaling issue
+```
+
+Fix
+
+```
+Increase instances
+Enable autoscale
+```
+
+---
+
+# 9. Deployment slot swap failing
+
+Cause
+
+```
+Configuration mismatch
+```
+
+Example
+
+```
+Connection string different
+```
+
+Fix
+
+```
+Use slot settings
+```
+
+---
+
+# 10. Memory leak causing crash
+
+Symptoms
+
+```
+App restarting
+Memory spikes
+```
+
+Tools
+
+```
+Application Insights
+Memory profiler
+```
+
+Fix
+
+```
+Patch code
+Increase instance size
+```
+
+---
+
+# 11. App Service storage full
+
+Symptoms
+
+```
+Deployment failure
+File write error
+```
+
+Check
+
+```
+App Service storage quota
+```
+
+Fix
+
+```
+Clean logs
+Delete temp files
+```
+
+---
+
+# 12. Authentication failure with Azure AD
+
+Check
+
+```
+App registration
+redirect URI
+```
+
+Fix
+
+```
+Update Azure AD configuration
+```
+
+---
+
+# 13. Logs not visible
+
+Check
+
+```
+Diagnostic logs enabled?
+```
+
+Enable
+
+```
+App Service → Diagnostics → Enable logging
+```
+
+---
+
+# 14. Application suddenly stops receiving traffic
+
+Check
+
+```
+Health probe
+DNS
+Load balancer
+```
+
+Fix
+
+```
+Restart instances
+Check DNS
+```
+
+---
+
+# 15. CI/CD pipeline deployment failing
+
+Common reasons
+
+```
+Permission issue
+Invalid artifact
+Slot locked
+```
+
+Example
+
+```
+Azure DevOps service principal expired
+```
+
+Fix
+
+```
+Update credentials
+```
+
+---
+
+# ⭐ DevOps Pro Tip (Often asked in Senior Interviews)
+
+**Best production architecture**
+
+```
+Azure Front Door
+       ↓
+Azure App Service
+       ↓
+Azure SQL / CosmosDB
+       ↓
+Application Insights
+```
+
+This provides
+
+* Global load balancing
+* Monitoring
+* High availability
+
+---
+
