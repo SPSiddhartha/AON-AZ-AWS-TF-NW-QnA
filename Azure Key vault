@@ -1,0 +1,566 @@
+Below are **DevOps-focused Q&A for Azure Secret Management using Azure Key Vault**.
+
+---
+
+# 1️⃣ 10 Intermediate Q&A – Azure Secret Management / Vault
+
+### 1. Q: What is Azure Key Vault and why is it used in DevOps?
+
+**A:** Azure Key Vault is a secure service used to store and manage **secrets, keys, and certificates**. In DevOps pipelines it prevents hardcoding sensitive values like DB passwords, API tokens, or SSH keys in code or pipelines.
+
+---
+
+### 2. Q: What types of secrets can be stored in Azure Key Vault?
+
+**A:**
+
+* Passwords
+* Connection strings
+* API tokens
+* TLS/SSL certificates
+* Encryption keys
+* Storage account keys
+
+---
+
+### 3. Q: What is the difference between Secrets, Keys, and Certificates in Key Vault?
+
+**A:**
+
+| Type         | Purpose                                         |
+| ------------ | ----------------------------------------------- |
+| Secrets      | Store sensitive values like passwords or tokens |
+| Keys         | Used for encryption operations                  |
+| Certificates | Used for TLS/SSL authentication                 |
+
+---
+
+### 4. Q: How does Azure DevOps access secrets from Key Vault?
+
+**A:**
+Azure DevOps can integrate with Key Vault using **Service Connections + Key Vault task**.
+
+Example pipeline step:
+
+```yaml
+- task: AzureKeyVault@2
+  inputs:
+    azureSubscription: 'Azure-ServiceConnection'
+    KeyVaultName: 'prod-kv'
+    SecretsFilter: '*'
+```
+
+Secrets become pipeline variables.
+
+---
+
+### 5. Q: What are Access Policies in Azure Key Vault?
+
+**A:**
+Access Policies define **which users or applications can perform operations like Get, List, Set, Delete** on secrets or keys.
+
+---
+
+### 6. Q: What is RBAC-based access control in Key Vault?
+
+**A:**
+Instead of Access Policies, Azure now recommends **Azure RBAC roles** such as:
+
+* Key Vault Reader
+* Key Vault Secrets User
+* Key Vault Administrator
+
+This integrates with **Azure AD identity management**.
+
+---
+
+### 7. Q: What is Soft Delete in Key Vault?
+
+**A:**
+Soft delete prevents permanent deletion of secrets immediately. Deleted secrets remain recoverable for **7–90 days**.
+
+---
+
+### 8. Q: What is Key Vault Managed Identity integration?
+
+**A:**
+Applications like **VM, AKS, or App Service** can access Key Vault without credentials using **Managed Identity**.
+
+---
+
+### 9. Q: How do you rotate secrets automatically?
+
+**A:**
+Using:
+
+* Azure Automation
+* Azure Functions
+* Key Vault Rotation Policies
+* Event Grid + Logic Apps
+
+---
+
+### 10. Q: How do you audit secret access?
+
+**A:**
+Enable **Diagnostic Logs** and send logs to:
+
+* Azure Monitor
+* Log Analytics
+* SIEM tools like Sentinel
+
+---
+
+# 2️⃣ 10 Real DevOps Production Incidents – Azure Key Vault
+
+---
+
+### Incident 1: Application unable to fetch secrets from Key Vault
+
+**Issue**
+
+Application throws:
+
+```
+403 Forbidden - Access denied to Key Vault
+```
+
+**Root Cause**
+
+Managed Identity not assigned permission.
+
+**Fix**
+
+Grant role:
+
+```
+Key Vault Secrets User
+```
+
+---
+
+### Incident 2: Azure DevOps pipeline failing during secret retrieval
+
+**Error**
+
+```
+Failed to fetch secret from Key Vault
+```
+
+**Root Cause**
+
+Service connection missing permission.
+
+**Solution**
+
+Add access policy:
+
+```
+Get
+List
+```
+
+for pipeline service principal.
+
+---
+
+### Incident 3: Secrets not updated in application
+
+**Issue**
+
+App still using old secret.
+
+**Root Cause**
+
+Application caching secret value.
+
+**Solution**
+
+Restart service or implement secret refresh logic.
+
+---
+
+### Incident 4: Key Vault network access blocked
+
+**Error**
+
+```
+Client address is not authorized
+```
+
+**Cause**
+
+Key Vault firewall enabled.
+
+**Fix**
+
+Allow:
+
+```
+Azure Services
+or
+VNet access
+```
+
+---
+
+### Incident 5: Secret accidentally deleted
+
+**Root Cause**
+
+Manual deletion.
+
+**Solution**
+
+Recover using soft delete.
+
+```
+az keyvault secret recover
+```
+
+---
+
+### Incident 6: AKS pod failing to load secret
+
+**Error**
+
+```
+Failed to mount secrets store
+```
+
+**Cause**
+
+CSI driver misconfiguration.
+
+**Fix**
+
+Install:
+
+```
+Azure Key Vault Secrets Provider
+```
+
+---
+
+### Incident 7: Secret rotation broke production app
+
+**Cause**
+
+Application not designed for runtime secret refresh.
+
+**Fix**
+
+Implement dynamic secret reload.
+
+---
+
+### Incident 8: Key Vault throttling during peak traffic
+
+**Error**
+
+```
+429 Too Many Requests
+```
+
+**Cause**
+
+Too many secret calls.
+
+**Fix**
+
+Implement caching layer.
+
+---
+
+### Incident 9: Terraform deployment failed
+
+**Error**
+
+```
+KeyVaultAlreadyExists
+```
+
+**Cause**
+
+Name conflict globally.
+
+**Fix**
+
+Use unique naming convention.
+
+---
+
+### Incident 10: Certificate renewal failure
+
+**Cause**
+
+Auto-renewal disabled.
+
+**Fix**
+
+Enable certificate policy renewal.
+
+---
+
+# 3️⃣ 15 Advanced Production Troubleshooting (TS) – Azure Key Vault
+
+---
+
+# TS1 – Application Secret Retrieval Failure
+
+**Scenario**
+
+Microservice cannot fetch DB password.
+
+**Logs**
+
+```
+AADSTS700016: Application not found
+```
+
+**Cause**
+
+Incorrect client ID.
+
+**Fix**
+
+Update correct Service Principal ID.
+
+---
+
+# TS2 – Managed Identity Authentication Failure
+
+**Example**
+
+VM accessing Key Vault.
+
+**Error**
+
+```
+Identity not found
+```
+
+**Root Cause**
+
+Managed identity not enabled.
+
+**Fix**
+
+Enable identity:
+
+```
+az vm identity assign
+```
+
+---
+
+# TS3 – Secret Version Conflict
+
+**Scenario**
+
+New secret version created but application uses old version.
+
+**Solution**
+
+Reference secret without version.
+
+Example:
+
+```
+https://vault.vault.azure.net/secrets/dbpassword
+```
+
+---
+
+# TS4 – Key Vault DNS Resolution Failure
+
+**Symptoms**
+
+Application timeout.
+
+**Cause**
+
+Private Endpoint misconfigured.
+
+**Fix**
+
+Check private DNS zone:
+
+```
+privatelink.vaultcore.azure.net
+```
+
+---
+
+# TS5 – AKS Secret CSI Mount Failure
+
+**Logs**
+
+```
+MountVolume.SetUp failed
+```
+
+**Cause**
+
+Incorrect SecretProviderClass.
+
+**Fix**
+
+Update YAML:
+
+```yaml
+provider: azure
+keyvaultName: prod-kv
+```
+
+---
+
+# TS6 – Key Vault Latency Issues
+
+**Cause**
+
+Frequent secret retrieval.
+
+**Solution**
+
+Implement:
+
+* Secret caching
+* App configuration service
+
+---
+
+# TS7 – Azure DevOps Secret Variable Not Loading
+
+**Cause**
+
+Variable group not linked.
+
+**Fix**
+
+Link Key Vault in pipeline library.
+
+---
+
+# TS8 – RBAC Permission Delay
+
+**Scenario**
+
+Access granted but still failing.
+
+**Cause**
+
+RBAC propagation delay.
+
+**Solution**
+
+Wait 5–10 minutes or refresh token.
+
+---
+
+# TS9 – Key Vault Firewall Blocking AKS
+
+**Cause**
+
+AKS subnet not allowed.
+
+**Fix**
+
+Add VNet rule.
+
+---
+
+# TS10 – Certificate Expired in Production
+
+**Impact**
+
+HTTPS outage.
+
+**Fix**
+
+Use auto-renew certificates via Key Vault.
+
+---
+
+# TS11 – Secret Injection Failure in Container Apps
+
+**Cause**
+
+Environment variable reference incorrect.
+
+**Fix**
+
+Use:
+
+```
+@Microsoft.KeyVault(SecretUri=...)
+```
+
+---
+
+# TS12 – Terraform Key Vault Permission Error
+
+**Error**
+
+```
+Insufficient privileges
+```
+
+**Cause**
+
+SPN missing role.
+
+**Fix**
+
+Assign:
+
+```
+Key Vault Contributor
+```
+
+---
+
+# TS13 – Secret Rotation Breaking Database Access
+
+**Cause**
+
+DB password rotated but DB not updated.
+
+**Solution**
+
+Implement dual password rotation strategy.
+
+---
+
+# TS14 – Secret Access Logged but App Failing
+
+**Cause**
+
+Application parsing failure.
+
+**Example**
+
+Secret stored with extra characters.
+
+**Fix**
+
+Validate secret format.
+
+---
+
+# TS15 – Large-scale Secret Retrieval Impacting Performance
+
+**Problem**
+
+1000+ pods calling Key Vault.
+
+**Solution**
+
+Use:
+
+* Azure App Configuration
+* Secret caching
+* Sidecar secret injector
+
+---
+
