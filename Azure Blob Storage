@@ -1,0 +1,1394 @@
+Below are **Azure Blob Storage Interview Q&A** structured for a **DevOps Engineer (6+ years experience)**. I included **Basic → Intermediate → Advanced Troubleshooting Scenarios** that are commonly asked in **Azure / Cloud DevOps interviews and production incidents**.
+
+---
+
+# 1️⃣ Azure Blob Storage – Basic Interview Questions (10)
+
+### 1. What is Azure Blob Storage?
+
+Azure Blob Storage is an **object storage service** in Microsoft Azure used for storing **unstructured data** such as images, videos, logs, backups, and documents.
+
+Example:
+
+* Application logs
+* Media files
+* Backup archives
+* Big data analytics data
+
+---
+
+### 2. What are the types of Blob Storage?
+
+There are **3 types**:
+
+1. **Block Blob**
+
+   * Used for storing text or binary files
+   * Example: images, videos
+
+2. **Append Blob**
+
+   * Optimized for **log files**
+   * Data added only at the end
+
+3. **Page Blob**
+
+   * Used for **random read/write operations**
+   * Used by **Azure Virtual Machine disks**
+
+---
+
+### 3. What is a Storage Account?
+
+A **Storage Account** is the **top-level container** that holds all Azure storage services such as:
+
+* Blob Storage
+* File Storage
+* Queue Storage
+* Table Storage
+
+Example:
+
+```
+Storage Account
+   ├── Containers
+   │     ├── logs
+   │     ├── backups
+   │     └── images
+```
+
+---
+
+### 4. What is a Blob Container?
+
+A **Container** is similar to a **directory in Linux** used to organize blobs.
+
+Example:
+
+```
+storageaccount
+   ├── container1
+   │      ├── app.log
+   │      ├── image.png
+```
+
+---
+
+### 5. What is Hot, Cool and Archive Tier?
+
+Azure Blob Storage provides **three access tiers**:
+
+| Tier    | Usage                    |
+| ------- | ------------------------ |
+| Hot     | Frequently accessed data |
+| Cool    | Infrequent access        |
+| Archive | Rarely accessed data     |
+
+Example:
+
+```
+Logs (30 days) → Hot
+Logs (1 year) → Cool
+Logs (5 years) → Archive
+```
+
+---
+
+### 6. What is a SAS Token?
+
+**Shared Access Signature (SAS)** provides **temporary secure access** to a blob without exposing the storage account key.
+
+Example:
+
+```
+https://storage.blob.core.windows.net/container/file.txt?sv=2024&sig=abcd
+```
+
+---
+
+### 7. What is Azure Storage Explorer?
+
+A GUI tool used to:
+
+* Upload blobs
+* Download files
+* Manage containers
+* Debug storage issues
+
+---
+
+### 8. What is blob versioning?
+
+Blob versioning keeps **multiple versions of a blob** whenever changes are made.
+
+Example:
+
+```
+file.txt
+file.txt (version1)
+file.txt (version2)
+```
+
+Useful for **accidental deletion recovery**.
+
+---
+
+### 9. What is Lifecycle Management in Blob Storage?
+
+Automates **data movement between tiers**.
+
+Example policy:
+
+```
+Hot → Cool after 30 days
+Cool → Archive after 90 days
+Delete after 365 days
+```
+
+---
+
+### 10. What authentication methods are used in Azure Blob Storage?
+
+1. Storage account keys
+2. Azure AD authentication
+3. SAS tokens
+4. Managed identities
+
+---
+
+# 2️⃣ Azure Blob Storage – Intermediate Interview Questions (15)
+
+---
+
+### 1. What is Azure Data Lake Storage Gen2?
+
+It is **Blob Storage + Hierarchical Namespace** optimized for **big data analytics**.
+
+Used with:
+
+* Azure Databricks
+* Azure Synapse
+* Hadoop
+
+---
+
+### 2. What is a hierarchical namespace?
+
+Allows blob storage to behave like a **file system with folders**.
+
+Example:
+
+```
+/data
+   /2025
+       /logs
+```
+
+---
+
+### 3. How does redundancy work in Blob Storage?
+
+Azure offers multiple redundancy options:
+
+| Redundancy | Description               |
+| ---------- | ------------------------- |
+| LRS        | Local redundant storage   |
+| ZRS        | Zone redundant storage    |
+| GRS        | Geo redundant storage     |
+| RA-GRS     | Read access geo redundant |
+
+---
+
+### 4. What is Soft Delete?
+
+Soft delete keeps deleted blobs for **a retention period**.
+
+Example:
+
+```
+Retention: 7 days
+```
+
+You can restore accidentally deleted blobs.
+
+---
+
+### 5. How can you secure Blob Storage?
+
+Methods:
+
+* Private endpoints
+* Storage firewall
+* Azure AD RBAC
+* SAS tokens
+* Encryption
+
+---
+
+### 6. What encryption does Azure Blob Storage use?
+
+Azure automatically encrypts data using **AES-256 encryption**.
+
+Encryption types:
+
+* Microsoft managed keys
+* Customer managed keys (Key Vault)
+
+---
+
+### 7. What is Azure Blob Snapshot?
+
+A **read-only copy** of a blob taken at a specific point in time.
+
+Example:
+
+```
+backup.sql
+backup.sql (snapshot)
+```
+
+---
+
+### 8. What is immutable storage?
+
+Prevents modification or deletion for compliance.
+
+Used for:
+
+* Financial records
+* Audit logs
+
+---
+
+### 9. What is Azure Blob Index Tags?
+
+Allows metadata tagging for blobs.
+
+Example:
+
+```
+environment = prod
+app = payment
+```
+
+Used for filtering data.
+
+---
+
+### 10. What is the difference between Blob Storage and Azure Files?
+
+| Blob Storage    | Azure Files                  |
+| --------------- | ---------------------------- |
+| Object storage  | File share                   |
+| REST API access | SMB access                   |
+| Used for apps   | Used for shared file systems |
+
+---
+
+### 11. How do you upload files using CLI?
+
+Example:
+
+```
+az storage blob upload \
+--account-name mystorage \
+--container-name logs \
+--file app.log \
+--name app.log
+```
+
+---
+
+### 12. What is AzCopy?
+
+AzCopy is a **high performance command line tool** used for data transfer.
+
+Example:
+
+```
+azcopy copy file.txt https://storage/container
+```
+
+---
+
+### 13. What is blob replication?
+
+Automatically replicates blobs to another storage account.
+
+Used for:
+
+* Disaster recovery
+* Data distribution
+
+---
+
+### 14. What is Private Endpoint in Blob Storage?
+
+Private endpoint allows blob storage access **via private VNet IP**.
+
+Benefits:
+
+* Secure
+* No public internet exposure
+
+---
+
+### 15. What is static website hosting in Blob Storage?
+
+Blob Storage can host **static websites**.
+
+Example:
+
+```
+index.html
+css/
+js/
+```
+
+URL:
+
+```
+https://storage.z13.web.core.windows.net
+```
+
+---
+
+# 3️⃣ Advanced Azure Blob Storage – Production Troubleshooting (15)
+
+These scenarios are **real DevOps production incidents**.
+
+---
+
+# 1️⃣ Application Getting 403 Access Denied
+
+### Problem
+
+Application cannot upload blobs.
+
+Error:
+
+```
+403 Forbidden
+AuthenticationFailed
+```
+
+### Troubleshooting
+
+Check:
+
+```
+SAS token expiry
+RBAC permissions
+Storage firewall
+```
+
+Example:
+
+```
+az role assignment list --assignee <service-principal>
+```
+
+### Root Cause
+
+Expired SAS token.
+
+---
+
+# 2️⃣ Blob Upload Very Slow
+
+### Symptoms
+
+Upload takes minutes.
+
+### Investigation
+
+Check:
+
+```
+Network latency
+Blob tier
+Parallel uploads
+```
+
+### Fix
+
+Use **AzCopy parallel uploads**.
+
+Example:
+
+```
+azcopy copy data https://storage/container --recursive
+```
+
+---
+
+# 3️⃣ Blob Storage Cost Suddenly Increased
+
+### Investigation
+
+Check:
+
+```
+Storage metrics
+Access tier usage
+```
+
+Common cause:
+
+Large data stored in **Hot tier instead of Cool/Archive**
+
+Fix:
+
+Lifecycle rule.
+
+---
+
+# 4️⃣ Blob Deleted Accidentally
+
+### Solution
+
+Restore using **Soft Delete**
+
+Steps:
+
+```
+Azure Portal
+→ Storage Account
+→ Blob
+→ Restore deleted blobs
+```
+
+---
+
+# 5️⃣ Azure VM Cannot Access Blob Storage
+
+Possible reasons:
+
+```
+Storage firewall
+Private endpoint misconfiguration
+DNS issue
+```
+
+Check:
+
+```
+nslookup storage.blob.core.windows.net
+```
+
+---
+
+# 6️⃣ Data Corruption During Upload
+
+Cause:
+
+Interrupted upload.
+
+Fix:
+
+Use **MD5 validation**.
+
+Example:
+
+```
+azcopy copy --check-md5
+```
+
+---
+
+# 7️⃣ Blob Storage Not Accessible from Kubernetes
+
+Common issue in **AKS cluster**.
+
+Check:
+
+```
+Network security groups
+Private endpoint
+Pod identity
+```
+
+---
+
+# 8️⃣ Azure Blob Container Not Listing Files
+
+Error:
+
+```
+AuthorizationPermissionMismatch
+```
+
+Fix:
+
+Add RBAC role:
+
+```
+Storage Blob Data Reader
+```
+
+---
+
+# 9️⃣ Archive Blob Not Downloading
+
+Problem:
+
+Archive blobs must be **rehydrated**.
+
+Example:
+
+```
+Rehydrate → Hot
+Time: 12 hours
+```
+
+---
+
+# 🔟 High API Throttling
+
+Error:
+
+```
+429 Too Many Requests
+```
+
+Cause:
+
+Too many operations per second.
+
+Fix:
+
+* Implement retry logic
+* Use batching
+
+---
+
+# 11️⃣ SAS Token Leaked
+
+Immediate action:
+
+```
+Regenerate storage account key
+```
+
+Then update applications.
+
+---
+
+# 12️⃣ Lifecycle Policy Not Moving Blobs
+
+Cause:
+
+Incorrect rule filter.
+
+Check:
+
+```
+Prefix match
+Blob type
+```
+
+---
+
+# 13️⃣ Blob Replication Not Working
+
+Check:
+
+```
+Replication status
+Destination account
+Region compatibility
+```
+
+---
+
+# 14️⃣ Azure Function Cannot Write Logs to Blob
+
+Check:
+
+```
+Managed Identity permissions
+```
+
+Required role:
+
+```
+Storage Blob Data Contributor
+```
+
+---
+
+# 15️⃣ Storage Account Reached Capacity
+
+Symptoms:
+
+Uploads failing.
+
+Fix:
+
+* Move data to archive
+* Create additional storage account
+
+---
+
+# ⭐ DevOps Interview Tip (Very Important)
+
+Interviewers often ask:
+
+**"How do you troubleshoot Blob Storage issues in production?"**
+
+Good answer flow:
+
+```
+1 Check Azure Monitor metrics
+2 Check Storage logs
+3 Verify network/firewall rules
+4 Validate authentication (SAS/RBAC)
+5 Test using Azure CLI or AzCopy
+```
+In **Azure Blob Storage**, **Retention Policies**, **Storage Policies (Lifecycle Management)**, and **File Movement between tiers** are very important concepts for **DevOps engineers managing logs, backups, and large datasets**.
+
+Below is a clear **DevOps-focused explanation with examples**.
+
+---
+
+# 1️⃣ Retention Policies in Azure Blob Storage
+
+A **Retention Policy** defines **how long data must be kept before it can be deleted or modified**.
+
+It is mainly used for:
+
+* Compliance
+* Audit logs
+* Financial data
+* Security logs
+
+## Types of Retention in Blob Storage
+
+### 1. Soft Delete Retention
+
+Soft delete keeps deleted blobs for a **configured number of days** so they can be recovered.
+
+Example:
+
+```
+Retention: 7 days
+```
+
+Workflow:
+
+```
+Blob Deleted
+     ↓
+Soft Delete Enabled
+     ↓
+Stored in recovery state (7 days)
+     ↓
+Permanent deletion after 7 days
+```
+
+Use Case:
+
+* Application accidentally deletes files
+* DevOps can restore them quickly.
+
+---
+
+### 2. Immutable Storage (Legal Hold / Time-based retention)
+
+This prevents blobs from being **modified or deleted** until a defined period.
+
+Example:
+
+```
+Retention Period = 1 year
+```
+
+Common industries:
+
+* Banking
+* Healthcare
+* Government compliance
+
+Workflow:
+
+```
+Upload file
+      ↓
+Apply retention policy
+      ↓
+File locked for X days
+      ↓
+Deletion allowed only after policy expiry
+```
+
+---
+
+# 2️⃣ Storage Policies (Lifecycle Management)
+
+A **Lifecycle Management Policy** automatically **moves data between storage tiers** or deletes old data.
+
+This is used to **reduce storage cost automatically**.
+
+Example policy:
+
+```
+Hot Tier → Cool Tier after 30 days
+Cool Tier → Archive Tier after 90 days
+Delete after 365 days
+```
+
+Example JSON policy:
+
+```json
+{
+ "rules": [
+  {
+   "name": "log-management",
+   "enabled": true,
+   "type": "Lifecycle",
+   "definition": {
+    "actions": {
+     "baseBlob": {
+      "tierToCool": { "daysAfterModificationGreaterThan": 30 },
+      "tierToArchive": { "daysAfterModificationGreaterThan": 90 },
+      "delete": { "daysAfterModificationGreaterThan": 365 }
+     }
+    },
+    "filters": {
+     "blobTypes": ["blockBlob"],
+     "prefixMatch": ["logs/"]
+    }
+   }
+  }
+ ]
+}
+```
+
+Example folder structure:
+
+```
+storage-account
+   ├── logs/
+   │     ├── app.log
+   │     ├── error.log
+```
+
+After 30 days:
+
+```
+Hot → Cool
+```
+
+After 90 days:
+
+```
+Cool → Archive
+```
+
+---
+
+# 3️⃣ Storage Tiers in Blob Storage
+
+In **Azure Blob Storage**, data is stored in **3 tiers**.
+
+| Tier    | Usage                          | Cost                 |
+| ------- | ------------------------------ | -------------------- |
+| Hot     | Frequently accessed data       | Highest storage cost |
+| Cool    | Infrequent access              | Medium               |
+| Archive | Rare access (long term backup) | Lowest               |
+
+Example:
+
+```
+Hot → Active logs
+Cool → Monthly reports
+Archive → Old backups
+```
+
+---
+
+# 4️⃣ How Files Move Between Tiers
+
+Files can move between tiers in **three ways**.
+
+---
+
+## Method 1 — Lifecycle Policy (Automatic)
+
+Azure automatically moves files.
+
+Example:
+
+```
+Day 0   → Upload log file
+Day 30  → Move to Cool
+Day 90  → Move to Archive
+Day 365 → Delete
+```
+
+This runs **once per day automatically**.
+
+---
+
+## Method 2 — Azure CLI
+
+DevOps engineers can manually move files using CLI.
+
+Example:
+
+Move blob to Cool tier
+
+```
+az storage blob set-tier \
+--account-name mystorage \
+--container-name logs \
+--name app.log \
+--tier Cool
+```
+
+Move blob to Archive tier
+
+```
+az storage blob set-tier \
+--tier Archive
+```
+
+---
+
+## Method 3 — Azure Portal
+
+Steps:
+
+```
+Azure Portal
+ → Storage Account
+ → Containers
+ → Select Blob
+ → Change Access Tier
+```
+
+---
+
+# 5️⃣ Rehydration Process (Archive → Hot)
+
+Archive blobs cannot be read instantly.
+
+They must be **rehydrated first**.
+
+Example workflow:
+
+```
+Archive Blob
+      ↓
+Rehydrate request
+      ↓
+Move to Hot or Cool
+      ↓
+Accessible after 12 hours
+```
+
+Rehydration types:
+
+| Type          | Time           |
+| ------------- | -------------- |
+| Standard      | up to 15 hours |
+| High priority | 1 hour         |
+
+---
+
+# 6️⃣ Real DevOps Example (Production)
+
+### Scenario
+
+Application logs stored in blob storage.
+
+Daily log size:
+
+```
+200 GB/day
+```
+
+If logs stay in **Hot tier**, cost becomes very high.
+
+Solution:
+
+Lifecycle policy:
+
+```
+logs/
+
+0–30 days  → Hot
+30–90 days → Cool
+90–365 days → Archive
+Delete after 1 year
+```
+
+Benefits:
+
+* 70–90% storage cost reduction
+* Automated storage management
+
+---
+
+# 7️⃣ Typical DevOps Architecture
+
+```
+Application
+     ↓
+Upload logs
+     ↓
+Azure Blob Container
+     ↓
+Lifecycle Policy
+     ↓
+Hot → Cool → Archive
+     ↓
+Deletion after retention period
+```
+
+---
+
+# 8️⃣ Best Practices for DevOps
+
+1️⃣ Enable **Soft Delete**
+2️⃣ Enable **Versioning**
+3️⃣ Use **Lifecycle Management**
+4️⃣ Store logs in **Cool/Archive tiers**
+5️⃣ Use **RBAC instead of account keys**
+6️⃣ Monitor using **Azure Monitor**
+
+---
+Below are **DevOps-level explanations** for the two topics you asked:
+
+* **Blob Storage + AKS integration**
+* **Terraform deployment of Blob Storage**
+
+Both are commonly used in **CI/CD pipelines, logging systems, backups, and application storage**.
+
+---
+
+# 1️⃣ Blob Storage + AKS Integration
+
+Integration between **Azure Blob Storage** and **Azure Kubernetes Service** allows containers running in Kubernetes to **store or read data from Blob Storage**.
+
+This is typically used for:
+
+* Application file storage
+* Log storage
+* Data lake ingestion
+* Backup storage
+* AI/ML datasets
+
+---
+
+## Architecture
+
+Typical architecture in production:
+
+```
+AKS Cluster
+   │
+   │ (Pod)
+   │
+Application Container
+   │
+   │ Azure Blob CSI Driver
+   │
+Persistent Volume
+   │
+Azure Blob Storage
+```
+
+---
+
+# Methods to Integrate AKS with Blob Storage
+
+There are **three common integration methods**.
+
+---
+
+# 1️⃣ Blob CSI Driver (Most Recommended)
+
+Azure provides a **Container Storage Interface (CSI)** driver to mount Blob storage into pods.
+
+Official component:
+**Azure Blob CSI Driver**
+
+This allows **Blob containers to be mounted as volumes**.
+
+### Example StorageClass
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: blob-storage
+provisioner: blob.csi.azure.com
+parameters:
+  containerName: appdata
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+```
+
+---
+
+### Persistent Volume Claim
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: blob-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: blob-storage
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+---
+
+### Pod Using Blob Storage
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+spec:
+  containers:
+  - name: myapp
+    image: nginx
+    volumeMounts:
+    - mountPath: "/data"
+      name: blob-volume
+  volumes:
+  - name: blob-volume
+    persistentVolumeClaim:
+      claimName: blob-pvc
+```
+
+Inside container:
+
+```
+/data → Azure Blob container
+```
+
+---
+
+# 2️⃣ Access via SDK / REST API
+
+Applications inside AKS can directly access Blob Storage using SDKs.
+
+Example Python code:
+
+```python
+from azure.storage.blob import BlobServiceClient
+
+blob_service = BlobServiceClient.from_connection_string(conn_string)
+container = blob_service.get_container_client("logs")
+container.upload_blob("app.log", data)
+```
+
+Use cases:
+
+* File uploads
+* Image storage
+* Data pipelines
+
+---
+
+# 3️⃣ Mount Blob via BlobFuse
+
+Another option is **FUSE driver**.
+
+Tool:
+**BlobFuse**
+
+BlobFuse allows Linux pods to mount blob storage as filesystem.
+
+Example:
+
+```
+/mnt/blob
+```
+
+But **CSI driver is preferred now**.
+
+---
+
+# Security Best Practice
+
+Avoid using **Storage Account Keys**.
+
+Use:
+
+* Managed Identity
+* Azure AD authentication
+* RBAC
+
+Example role:
+
+```
+Storage Blob Data Contributor
+```
+
+---
+
+# Real Production Scenario (DevOps)
+
+### Problem
+
+Application in AKS fails to write files.
+
+Error:
+
+```
+403 AuthorizationPermissionMismatch
+```
+
+### Investigation
+
+Check:
+
+```
+Managed Identity
+RBAC role
+Storage firewall
+```
+
+### Fix
+
+Assign role:
+
+```
+Storage Blob Data Contributor
+```
+
+to AKS node identity.
+
+---
+
+# 2️⃣ Terraform Deployment of Blob Storage
+
+Infrastructure as Code for Blob Storage is usually done using **Terraform** with **Microsoft Azure** provider.
+
+DevOps teams use Terraform to create:
+
+* Storage accounts
+* Blob containers
+* Lifecycle policies
+* Network rules
+* RBAC
+
+---
+
+# Terraform Architecture
+
+```
+Terraform
+   │
+   │ Azure Provider
+   │
+Azure Storage Account
+   │
+Blob Container
+   │
+Lifecycle Policies
+```
+
+---
+
+# Step 1 — Provider Configuration
+
+```hcl
+provider "azurerm" {
+  features {}
+}
+```
+
+---
+
+# Step 2 — Resource Group
+
+```hcl
+resource "azurerm_resource_group" "rg" {
+  name     = "devops-rg"
+  location = "East US"
+}
+```
+
+---
+
+# Step 3 — Storage Account
+
+```hcl
+resource "azurerm_storage_account" "storage" {
+  name                     = "devopsblobstore123"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
+  allow_blob_public_access = false
+}
+```
+
+---
+
+# Step 4 — Blob Container
+
+```hcl
+resource "azurerm_storage_container" "container" {
+  name                  = "logs"
+  storage_account_name  = azurerm_storage_account.storage.name
+  container_access_type = "private"
+}
+```
+
+---
+
+# Step 5 — Lifecycle Policy
+
+```hcl
+resource "azurerm_storage_management_policy" "policy" {
+  storage_account_id = azurerm_storage_account.storage.id
+
+  rule {
+    name    = "log-retention"
+    enabled = true
+
+    filters {
+      prefix_match = ["logs/"]
+      blob_types   = ["blockBlob"]
+    }
+
+    actions {
+      base_blob {
+        tier_to_cool_after_days_since_modification_greater_than = 30
+        tier_to_archive_after_days_since_modification_greater_than = 90
+        delete_after_days_since_modification_greater_than = 365
+      }
+    }
+  }
+}
+```
+
+---
+
+# Terraform Deployment Steps
+
+DevOps workflow:
+
+```
+terraform init
+terraform plan
+terraform apply
+```
+
+Example:
+
+```
+terraform apply -auto-approve
+```
+
+Terraform creates:
+
+```
+Resource Group
+Storage Account
+Blob Container
+Lifecycle Policy
+```
+
+---
+
+# Terraform + CI/CD (Production)
+
+Typical pipeline:
+
+```
+GitHub / Azure DevOps
+        │
+        │
+Terraform Pipeline
+        │
+        │
+Azure Storage Infrastructure
+```
+
+Example use cases:
+
+* Log storage for applications
+* Artifact storage for CI/CD
+* Data lake storage
+* Backup storage
+
+---
+
+# Real DevOps Production Issue
+
+### Scenario
+
+Terraform deployment fails:
+
+```
+StorageAccountAlreadyTaken
+```
+
+### Cause
+
+Storage account names must be **globally unique**.
+
+Example:
+
+```
+mystorageaccount
+```
+
+might already exist.
+
+### Fix
+
+Use random suffix:
+
+```hcl
+name = "devopsblob${random_string.suffix.result}"
+```
+
+---
+
+# DevOps Interview Tip
+
+Interviewers often ask:
+
+**How would you deploy Blob Storage securely using Terraform?**
+
+Good answer:
+
+```
+1 Create resource group
+2 Deploy storage account
+3 Disable public access
+4 Enable private endpoint
+5 Configure lifecycle policy
+6 Assign RBAC roles
+``
+
+---------------
+
+TO DO
+* AKS + Blob failures
+* Terraform storage deployment issues
+* CDN + Blob latency problems
+* Data lake pipeline failures
+* SAS token security incidents
+* **AKS + Blob Storage logging architecture**
+* **Blob Storage + Azure CDN architecture**
+* **Blob Storage disaster recovery strategy**
+
+These are **very powerful for 7+ years DevOps interviews.**
+
+
