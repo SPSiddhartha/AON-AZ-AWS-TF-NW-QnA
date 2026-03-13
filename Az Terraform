@@ -1,0 +1,2356 @@
+Below is a **Senior DevOps Azure Terraform Interview & Production Incident Handbook** designed for **6+ years DevOps engineers**.
+Focus: **Infrastructure as Code with Terraform in Azure production environments**.
+
+---
+
+# 1️⃣ Intermediate Terraform (Azure) – Q&A (10)
+
+### Q1. What is Terraform state and why is it important?
+
+**Answer:**
+Terraform state (`terraform.tfstate`) stores the **current infrastructure metadata** created by Terraform. It maps resources in the configuration to real Azure resources.
+
+Example:
+
+```
+resource "azurerm_resource_group" "rg" {
+  name     = "prod-rg"
+  location = "East US"
+}
+```
+
+Why important:
+
+* Tracks deployed resources
+* Prevents duplicate resource creation
+* Enables `terraform plan` diff detection
+
+Best practice:
+Store state in **remote backend (Azure Storage Account)**.
+
+---
+
+### Q2. How do you configure remote backend in Azure?
+
+**Answer:**
+
+```
+terraform {
+ backend "azurerm" {
+  resource_group_name  = "tfstate-rg"
+  storage_account_name = "tfstateprod"
+  container_name       = "tfstate"
+  key                  = "prod.terraform.tfstate"
+ }
+}
+```
+
+Benefits:
+
+* State sharing
+* State locking
+* Versioning
+
+---
+
+### Q3. What is Terraform state locking?
+
+**Answer:**
+State locking prevents **multiple users modifying infrastructure simultaneously**.
+
+Azure implementation:
+
+* Blob Storage Lease Lock
+
+If two engineers run `terraform apply`, only one can modify the state.
+
+---
+
+### Q4. Difference between `terraform refresh` and `terraform plan`?
+
+| Command           | Purpose                            |
+| ----------------- | ---------------------------------- |
+| terraform refresh | Updates state file with real infra |
+| terraform plan    | Shows changes required             |
+
+Example scenario:
+Azure resource modified manually → plan detects drift.
+
+---
+
+### Q5. What is Terraform module?
+
+**Answer:**
+Reusable infrastructure components.
+
+Example:
+
+```
+module "vnet" {
+ source = "./modules/vnet"
+ name   = "prod-vnet"
+}
+```
+
+Benefits:
+
+* Reusability
+* Standardization
+* Team collaboration
+
+---
+
+### Q6. What are Terraform workspaces?
+
+**Answer:**
+Workspaces allow **multiple environments with same code**.
+
+Example:
+
+```
+terraform workspace new dev
+terraform workspace new prod
+```
+
+State files:
+
+```
+dev.tfstate
+prod.tfstate
+```
+
+---
+
+### Q7. How does Terraform dependency work?
+
+**Answer:**
+Terraform automatically builds dependency graph.
+
+Example:
+
+```
+resource "azurerm_subnet" "subnet" {
+ virtual_network_name = azurerm_virtual_network.vnet.name
+}
+```
+
+Subnet waits until VNet is created.
+
+---
+
+### Q8. What is `terraform import`?
+
+**Answer:**
+Imports existing Azure resources into Terraform state.
+
+Example:
+
+```
+terraform import azurerm_resource_group.rg /subscriptions/xxxx/resourceGroups/prod-rg
+```
+
+Used when infrastructure was created manually.
+
+---
+
+### Q9. What is drift detection?
+
+**Answer:**
+Detects changes made **outside Terraform**.
+
+Example:
+
+Engineer deletes NSG rule manually → `terraform plan` detects drift.
+
+---
+
+### Q10. What are Terraform provisioners?
+
+**Answer:**
+Provisioners execute scripts after resource creation.
+
+Example:
+
+```
+provisioner "remote-exec" {
+ inline = ["sudo apt update"]
+}
+```
+
+However **avoid in production** (not idempotent).
+
+---
+
+# 2️⃣ Real DevOps Production Incidents (10)
+
+---
+
+# Incident 1 — Terraform State Corruption
+
+### Problem
+
+`terraform apply` fails:
+
+```
+Error locking state
+```
+
+### Root Cause
+
+State file corrupted due to interrupted pipeline.
+
+### Fix
+
+```
+terraform force-unlock LOCK_ID
+```
+
+Restore previous version from **Azure Blob versioning**.
+
+---
+
+# Incident 2 — Duplicate Resource Creation
+
+### Problem
+
+Terraform tries creating existing resource.
+
+### Root Cause
+
+Resource not present in state.
+
+### Fix
+
+```
+terraform import azurerm_storage_account.sa <resource-id>
+```
+
+---
+
+# Incident 3 — Terraform Destroy Accidentally Triggered
+
+### Problem
+
+Pipeline executed:
+
+```
+terraform destroy
+```
+
+### Impact
+
+Production VNet deleted.
+
+### Fix
+
+Use:
+
+```
+prevent_destroy = true
+```
+
+Example:
+
+```
+lifecycle {
+ prevent_destroy = true
+}
+```
+
+---
+
+# Incident 4 — Azure API Rate Limiting
+
+### Error
+
+```
+429 Too Many Requests
+```
+
+### Cause
+
+Terraform creating **hundreds of resources simultaneously**.
+
+### Fix
+
+```
+terraform apply -parallelism=5
+```
+
+---
+
+# Incident 5 — State File Locked Forever
+
+### Cause
+
+Pipeline crashed during `apply`.
+
+### Fix
+
+```
+terraform force-unlock
+```
+
+---
+
+# Incident 6 — Terraform Plan Showing Massive Changes
+
+### Cause
+
+Provider version mismatch.
+
+### Fix
+
+Pin provider version:
+
+```
+provider "azurerm" {
+ version = "~>3.0"
+}
+```
+
+---
+
+# Incident 7 — Storage Backend Authentication Failure
+
+### Error
+
+```
+Error: storage account authentication failed
+```
+
+### Cause
+
+Service principal secret expired.
+
+### Fix
+
+Rotate secret and update pipeline.
+
+---
+
+# Incident 8 — Resource Recreation Instead of Update
+
+### Cause
+
+Immutable fields changed.
+
+Example:
+Changing storage account name → requires recreation.
+
+### Fix
+
+Create new resource manually or migrate.
+
+---
+
+# Incident 9 — Terraform Pipeline Timeout
+
+### Cause
+
+Large infra deployment.
+
+### Fix
+
+Split Terraform code into **modules per service**.
+
+---
+
+# Incident 10 — Drift from Manual Azure Portal Changes
+
+### Cause
+
+Security team manually edited NSG rule.
+
+### Fix
+
+```
+terraform plan
+terraform apply
+```
+
+Restore Terraform desired state.
+
+---
+
+# 3️⃣ Advanced Terraform Production Troubleshooting (15)
+
+---
+
+# 1. State File Deleted Accidentally
+
+### Example
+
+Azure Blob container deleted.
+
+### Fix
+
+Restore from **Blob versioning or backup**.
+
+Best practice:
+
+* Enable **soft delete**
+* Enable **versioning**
+
+---
+
+# 2. Parallel Terraform Pipelines Causing Conflicts
+
+### Issue
+
+Two CI pipelines running simultaneously.
+
+### Solution
+
+Enable **state locking backend**.
+
+---
+
+# 3. Terraform Apply Partial Failure
+
+### Scenario
+
+Some resources created, others failed.
+
+### Fix
+
+```
+terraform apply
+```
+
+Terraform resumes remaining resources.
+
+---
+
+# 4. Azure Role Permission Failure
+
+### Error
+
+```
+AuthorizationFailed
+```
+
+### Fix
+
+Grant service principal:
+
+```
+Contributor role
+```
+
+Or specific roles.
+
+---
+
+# 5. Circular Dependency Error
+
+Example:
+
+```
+resource A depends on B
+resource B depends on A
+```
+
+Fix:
+Use `depends_on`.
+
+---
+
+# 6. Terraform State Drift in Production
+
+### Detection
+
+```
+terraform plan
+```
+
+### Resolution
+
+```
+terraform apply
+```
+
+---
+
+# 7. Backend Storage Deleted
+
+### Impact
+
+Terraform loses state.
+
+### Fix
+
+Reconfigure backend and restore state file.
+
+---
+
+# 8. Provider Upgrade Breaking Infrastructure
+
+### Example
+
+Upgrade from:
+
+```
+azurerm 2.x → 3.x
+```
+
+Breaking schema.
+
+### Fix
+
+Run
+
+```
+terraform init -upgrade
+```
+
+Then adjust code.
+
+---
+
+# 9. Terraform Apply Stuck
+
+### Cause
+
+Azure resource provisioning slow.
+
+Example:
+AKS cluster creation.
+
+### Fix
+
+Increase timeout:
+
+```
+timeouts {
+ create = "90m"
+}
+```
+
+---
+
+# 10. Resource Already Exists Error
+
+Example:
+
+```
+Error: resource already exists
+```
+
+Fix:
+
+```
+terraform import
+```
+
+---
+
+# 11. State File Too Large
+
+### Cause
+
+Large infra in single state.
+
+### Fix
+
+Split into multiple states.
+
+Example:
+
+```
+network.tfstate
+compute.tfstate
+security.tfstate
+```
+
+---
+
+# 12. Secrets Exposed in Terraform State
+
+### Cause
+
+Passwords stored in state file.
+
+### Fix
+
+Use:
+
+* Azure Key Vault
+* Sensitive variables
+
+```
+sensitive = true
+```
+
+---
+
+# 13. Terraform Apply Destroying Dependencies
+
+Example:
+Deleting VNet before subnet.
+
+Fix:
+Use dependency graph.
+
+---
+
+# 14. Resource Drift Due to Autoscaling
+
+Example:
+VMSS scaling modifies resource count.
+
+Fix:
+Use:
+
+```
+ignore_changes
+```
+
+---
+
+# 15. Terraform Plan Shows No Changes but Infra Broken
+
+### Cause
+
+Drift outside Terraform management.
+
+### Fix
+
+Run
+
+```
+terraform refresh
+```
+
+---
+
+# 4️⃣ Terraform Production Incident Handbook (20 Real Outages + Fix)
+
+| #  | Incident                    | Root Cause             | Fix                   |
+| -- | --------------------------- | ---------------------- | --------------------- |
+| 1  | State corruption            | Pipeline crash         | Restore state version |
+| 2  | Resource duplication        | Missing state entry    | terraform import      |
+| 3  | Accidental destroy          | Wrong pipeline job     | prevent_destroy       |
+| 4  | State lock stuck            | Interrupted apply      | force-unlock          |
+| 5  | Azure API throttling        | Parallel deploy        | reduce parallelism    |
+| 6  | Backend auth failure        | expired secret         | rotate SPN secret     |
+| 7  | Massive infra change        | provider upgrade       | pin version           |
+| 8  | Terraform drift             | manual portal change   | apply again           |
+| 9  | Terraform timeout           | large AKS creation     | increase timeout      |
+| 10 | Backend storage deleted     | manual deletion        | restore backup        |
+| 11 | Secrets exposed             | state file             | use Key Vault         |
+| 12 | Module dependency failure   | wrong references       | depends_on            |
+| 13 | Multiple engineers applying | no lock                | enable locking        |
+| 14 | Terraform import missing    | manual resources       | import                |
+| 15 | Azure role missing          | SPN permission         | assign role           |
+| 16 | Terraform state too big     | large infra            | split state           |
+| 17 | Pipeline stuck              | resource wait          | timeout config        |
+| 18 | Resource recreation         | immutable field change | recreate carefully    |
+| 19 | Destroy triggered in prod   | misconfigured pipeline | manual approval       |
+| 20 | Terraform version mismatch  | different CLI versions | lock version          |
+
+---
+
+
+---
+
+
+Below are **Senior DevOps Interview Q&A and Production Troubleshooting Scenarios** for **Azure Services, Azure Cloud Platform, and AKS Kubernetes Clusters**.
+Focus: **Real production issues + senior DevOps interview preparation**.
+
+---
+
+# 1️⃣ Azure Services – 10 Production DevOps Q&A
+
+### 1. What happens if an Azure App Service suddenly stops responding?
+
+**Answer:**
+Possible causes:
+
+* App Service plan CPU exhaustion
+* Memory leak
+* Application crash
+* Deployment failure
+
+**Troubleshooting**
+
+* Check **Application Logs**
+* Check **Azure Monitor metrics**
+* Restart App Service
+
+Example command:
+
+```
+az webapp restart --name prod-app --resource-group prod-rg
+```
+
+---
+
+### 2. How do you troubleshoot Azure Storage latency issues?
+
+**Answer**
+
+Steps:
+
+1. Check Storage metrics
+2. Check throttling
+3. Review request latency
+
+Key metrics:
+
+* SuccessE2ELatency
+* Availability
+* ThrottlingError
+
+Solution:
+
+* Enable **CDN**
+* Use **Premium Storage**
+
+---
+
+### 3. What happens if Azure Key Vault secrets cannot be retrieved?
+
+**Answer**
+
+Common causes:
+
+* Access policy missing
+* Managed identity misconfigured
+* Firewall restrictions
+
+Fix:
+
+```
+az keyvault set-policy \
+ --name prod-kv \
+ --spn <client-id> \
+ --secret-permissions get list
+```
+
+---
+
+### 4. How do you troubleshoot Azure Load Balancer health probe failures?
+
+**Answer**
+
+Steps:
+
+1. Verify probe port
+2. Check backend health
+3. Verify NSG rules
+
+Example probe configuration:
+
+```
+HTTP probe port 80
+interval 5 seconds
+```
+
+---
+
+### 5. What is the difference between Azure Front Door and Azure Application Gateway?
+
+| Feature  | Front Door     | App Gateway      |
+| -------- | -------------- | ---------------- |
+| Layer    | Global L7      | Regional L7      |
+| Use Case | Global traffic | Regional traffic |
+| WAF      | Yes            | Yes              |
+
+---
+
+### 6. How do you debug Azure Functions not triggering?
+
+**Answer**
+
+Check:
+
+* Function runtime
+* Event trigger configuration
+* Storage account connectivity
+
+Example logs:
+
+```
+Function execution timeout
+```
+
+Fix:
+Increase timeout in host.json.
+
+---
+
+### 7. How do you troubleshoot Azure SQL connection failures?
+
+**Answer**
+
+Check:
+
+* Firewall rules
+* Private endpoint
+* Connection pool exhaustion
+
+Example fix:
+
+```
+az sql server firewall-rule create
+```
+
+---
+
+### 8. What causes Azure Service Bus message delays?
+
+**Answer**
+
+Possible reasons:
+
+* Dead letter queue
+* Message lock timeout
+* Consumer lag
+
+Fix:
+Scale consumers.
+
+---
+
+### 9. How do you troubleshoot Azure VM high CPU?
+
+**Answer**
+
+Check:
+
+```
+top
+htop
+vmstat
+```
+
+Then check Azure metrics:
+
+* CPU
+* Disk queue
+* Network
+
+---
+
+### 10. How do you handle Azure region outage?
+
+**Answer**
+
+Use:
+
+* Traffic Manager
+* Geo-replication
+* Multi-region deployment
+
+Example architecture:
+
+```
+Region1 → Active
+Region2 → Failover
+```
+
+---
+
+# 2️⃣ Azure Cloud Platform – 10 Senior DevOps Q&A
+
+---
+
+### 1. What is Azure Availability Zone architecture?
+
+**Answer**
+
+Availability Zones are **physically separate datacenters** in a region.
+
+Example:
+
+```
+Zone 1
+Zone 2
+Zone 3
+```
+
+Used for:
+
+* High availability
+* Disaster recovery
+
+---
+
+### 2. What is the difference between Azure Availability Set and Availability Zone?
+
+| Feature         | Availability Set | Availability Zone |
+| --------------- | ---------------- | ----------------- |
+| Scope           | Datacenter       | Region            |
+| Fault tolerance | Hardware         | Entire DC         |
+
+---
+
+### 3. What is Azure Resource Manager (ARM)?
+
+**Answer**
+
+ARM is the **deployment and management layer** of Azure.
+
+Functions:
+
+* Infrastructure provisioning
+* Resource grouping
+* Role-based access
+
+---
+
+### 4. What is Azure RBAC?
+
+**Answer**
+
+Role Based Access Control manages permissions.
+
+Example roles:
+
+* Reader
+* Contributor
+* Owner
+
+Command:
+
+```
+az role assignment create
+```
+
+---
+
+### 5. What is Azure Managed Identity?
+
+**Answer**
+
+Identity automatically managed by Azure used for authentication.
+
+Benefits:
+
+* No secrets
+* Secure access to Key Vault
+
+---
+
+### 6. What is Azure Private Endpoint?
+
+**Answer**
+
+Private Endpoint enables **private IP access to Azure services**.
+
+Example:
+
+```
+Storage → private VNet access
+```
+
+Benefits:
+
+* No public internet exposure
+
+---
+
+### 7. What is Azure Policy?
+
+**Answer**
+
+Azure Policy enforces governance.
+
+Example:
+
+```
+Only allow East US region
+```
+
+---
+
+### 8. What is Azure Blue-Green Deployment?
+
+**Answer**
+
+Two environments:
+
+```
+Blue → Production
+Green → New version
+```
+
+Switch traffic after validation.
+
+---
+
+### 9. What is Azure Traffic Manager?
+
+**Answer**
+
+DNS-based global traffic routing.
+
+Routing methods:
+
+* Priority
+* Weighted
+* Performance
+
+---
+
+### 10. What is Azure Monitor architecture?
+
+**Answer**
+
+Azure Monitor collects:
+
+* Metrics
+* Logs
+* Alerts
+
+Components:
+
+```
+Azure Monitor
+Log Analytics
+Application Insights
+Alerts
+```
+
+---
+
+# 3️⃣ AKS Kubernetes Clusters – 10 DevOps Production Q&A
+
+---
+
+### 1. What happens when pods go into CrashLoopBackOff?
+
+**Answer**
+
+Pod repeatedly crashes.
+
+Common reasons:
+
+* Bad image
+* Missing env variables
+* Application crash
+
+Check logs:
+
+```
+kubectl logs pod-name
+```
+
+---
+
+### 2. How do you troubleshoot nodes in NotReady state?
+
+**Answer**
+
+Check node status:
+
+```
+kubectl get nodes
+```
+
+Then inspect:
+
+```
+kubectl describe node node1
+```
+
+Common causes:
+
+* kubelet failure
+* network issue
+* disk pressure
+
+---
+
+### 3. What causes pods stuck in Pending state?
+
+**Answer**
+
+Reasons:
+
+* insufficient CPU
+* insufficient memory
+* missing node selector
+
+Fix:
+Scale node pool.
+
+---
+
+### 4. How do you debug Kubernetes service connectivity?
+
+**Answer**
+
+Steps:
+
+```
+kubectl get svc
+kubectl get endpoints
+kubectl describe svc
+```
+
+Also test:
+
+```
+curl service-ip
+```
+
+---
+
+### 5. What happens when Kubernetes cluster autoscaler fails?
+
+**Answer**
+
+Nodes not scaling automatically.
+
+Check logs:
+
+```
+kubectl logs cluster-autoscaler
+```
+
+Fix:
+Verify autoscaler permissions.
+
+---
+
+### 6. How do you troubleshoot AKS ingress not routing traffic?
+
+**Answer**
+
+Check:
+
+```
+kubectl get ingress
+kubectl describe ingress
+```
+
+Check ingress controller logs.
+
+---
+
+### 7. What is the difference between AKS node pool types?
+
+| Node Pool | Purpose               |
+| --------- | --------------------- |
+| System    | Kubernetes components |
+| User      | Application workloads |
+
+---
+
+### 8. What causes ImagePullBackOff error?
+
+**Answer**
+
+Reasons:
+
+* Wrong image name
+* private registry authentication failure
+
+Fix:
+
+```
+kubectl create secret docker-registry
+```
+
+---
+
+### 9. How do you troubleshoot high latency in AKS?
+
+**Answer**
+
+Check:
+
+* Pod CPU
+* Network policies
+* Node CPU
+
+Commands:
+
+```
+kubectl top nodes
+kubectl top pods
+```
+
+---
+
+### 10. What happens when etcd becomes unhealthy?
+
+**Answer**
+
+Cluster control plane becomes unstable.
+
+Symptoms:
+
+* API server slow
+* pods not scheduled
+
+Fix:
+Restart control plane nodes or restore snapshot.
+
+---
+
+Below is a **Senior DevOps Handbook: 30 Azure Terraform Production War Stories**.
+These are **real outage scenarios experienced by DevOps teams using Terraform with Azure**, including **Root Cause + Troubleshooting + Fix**.
+Very useful for **7–10 years DevOps interviews and production readiness**.
+
+---
+
+# Azure Terraform Production War Stories (30 Real Incidents)
+
+---
+
+# 1. Terraform State File Deleted
+
+**Incident**
+
+Production deployment failed suddenly.
+
+```
+Error: backend state not found
+```
+
+**Root Cause**
+
+Azure Storage container holding the Terraform state was deleted.
+
+**Impact**
+
+Terraform attempted to recreate all infrastructure.
+
+**Fix**
+
+* Restore storage container from backup
+* Restore `terraform.tfstate`
+
+**Prevention**
+
+Enable:
+
+* Blob versioning
+* Soft delete
+
+---
+
+# 2. Terraform Apply Destroyed Production Resources
+
+**Incident**
+
+Pipeline executed:
+
+```
+terraform destroy
+```
+
+**Root Cause**
+
+CI pipeline variable incorrectly set.
+
+**Impact**
+
+Production VNet and subnets removed.
+
+**Fix**
+
+Restore resources manually.
+
+**Prevention**
+
+Add lifecycle rule:
+
+```
+lifecycle {
+ prevent_destroy = true
+}
+```
+
+---
+
+# 3. Parallel Terraform Pipeline Conflict
+
+**Incident**
+
+Two DevOps engineers ran deployments simultaneously.
+
+```
+Error acquiring state lock
+```
+
+**Root Cause**
+
+State locking disabled.
+
+**Fix**
+
+Use **Azure Storage backend with locking**.
+
+---
+
+# 4. Terraform Plan Showing Massive Changes
+
+**Incident**
+
+Terraform wanted to recreate 200+ resources.
+
+**Root Cause**
+
+Provider version mismatch.
+
+**Fix**
+
+Pin provider version.
+
+```
+provider "azurerm" {
+ version = "~>3.0"
+}
+```
+
+---
+
+# 5. Storage Backend Authentication Failure
+
+**Incident**
+
+Terraform pipeline stopped.
+
+```
+Error: authentication failed
+```
+
+**Root Cause**
+
+Service principal secret expired.
+
+**Fix**
+
+Rotate credentials.
+
+---
+
+# 6. Terraform State Corruption
+
+**Incident**
+
+Terraform apply failed mid deployment.
+
+**Root Cause**
+
+Pipeline terminated abruptly.
+
+**Fix**
+
+Restore previous state version.
+
+---
+
+# 7. Resource Already Exists Error
+
+**Incident**
+
+Terraform tried creating existing Azure resource.
+
+```
+Error: resource already exists
+```
+
+**Root Cause**
+
+Resource created manually in Azure portal.
+
+**Fix**
+
+Import resource.
+
+```
+terraform import
+```
+
+---
+
+# 8. Azure API Throttling
+
+**Incident**
+
+Large deployment failed.
+
+```
+429 Too Many Requests
+```
+
+**Root Cause**
+
+Terraform parallel resource creation.
+
+**Fix**
+
+```
+terraform apply -parallelism=5
+```
+
+---
+
+# 9. Accidental State File Modification
+
+**Incident**
+
+Engineer manually edited `terraform.tfstate`.
+
+**Impact**
+
+Terraform unable to track resources.
+
+**Fix**
+
+Restore previous state version.
+
+---
+
+# 10. Backend Storage Account Deleted
+
+**Incident**
+
+Terraform could not access backend.
+
+**Fix**
+
+Recreate storage account and restore state.
+
+---
+
+# 11. Terraform Apply Timeout
+
+**Incident**
+
+AKS cluster deployment failed.
+
+**Root Cause**
+
+Default timeout too low.
+
+**Fix**
+
+Increase timeout.
+
+```
+timeouts {
+ create = "90m"
+}
+```
+
+---
+
+# 12. Terraform Destroy Triggered by Module Change
+
+**Incident**
+
+Minor change triggered large destroy.
+
+**Root Cause**
+
+Module structure change.
+
+**Fix**
+
+Use `terraform state mv`.
+
+---
+
+# 13. Secrets Exposed in Terraform State
+
+**Incident**
+
+Passwords stored in state file.
+
+**Root Cause**
+
+Sensitive variables not marked.
+
+**Fix**
+
+```
+sensitive = true
+```
+
+Use Azure Key Vault.
+
+---
+
+# 14. Terraform Drift from Manual Changes
+
+**Incident**
+
+Security team modified NSG rules manually.
+
+**Fix**
+
+Run:
+
+```
+terraform plan
+terraform apply
+```
+
+---
+
+# 15. Azure Role Permission Error
+
+**Incident**
+
+Terraform failed.
+
+```
+AuthorizationFailed
+```
+
+**Root Cause**
+
+Service principal lacked permission.
+
+**Fix**
+
+Assign role:
+
+```
+Contributor
+```
+
+---
+
+# 16. Large State File Causing Slow Terraform
+
+**Incident**
+
+Terraform plan took 20 minutes.
+
+**Root Cause**
+
+Single huge state file.
+
+**Fix**
+
+Split states:
+
+```
+network.tfstate
+compute.tfstate
+security.tfstate
+```
+
+---
+
+# 17. Resource Recreation Due to Immutable Field
+
+**Incident**
+
+Changing storage account name triggered destroy.
+
+**Fix**
+
+Create new resource and migrate data.
+
+---
+
+# 18. Terraform Version Mismatch
+
+**Incident**
+
+Pipeline used Terraform 1.6 but engineer used 1.3.
+
+**Impact**
+
+State file incompatible.
+
+**Fix**
+
+Lock version.
+
+```
+required_version = "~>1.6"
+```
+
+---
+
+# 19. Azure Region Outage During Deployment
+
+**Incident**
+
+Terraform deployment failed.
+
+**Fix**
+
+Deploy in alternate region.
+
+---
+
+# 20. Module Registry Unavailable
+
+**Incident**
+
+Terraform module download failed.
+
+**Fix**
+
+Use internal module repository.
+
+---
+
+# 21. Terraform Apply Stuck for Hours
+
+**Incident**
+
+Deployment stuck during VM creation.
+
+**Root Cause**
+
+Azure resource provisioning delay.
+
+**Fix**
+
+Increase timeout.
+
+---
+
+# 22. Terraform State Lock Stuck
+
+**Incident**
+
+Pipeline crashed while applying.
+
+**Fix**
+
+```
+terraform force-unlock LOCK_ID
+```
+
+---
+
+# 23. Accidental Resource Rename
+
+**Incident**
+
+Engineer renamed resource in Terraform.
+
+Terraform interpreted as destroy + create.
+
+**Fix**
+
+Use:
+
+```
+terraform state mv
+```
+
+---
+
+# 24. Azure Quota Limit Hit
+
+**Incident**
+
+Terraform failed creating VMs.
+
+```
+Quota exceeded
+```
+
+**Fix**
+
+Request quota increase.
+
+---
+
+# 25. Terraform Apply Destroying Dependent Resources
+
+**Incident**
+
+VNet removal triggered subnet deletion.
+
+**Fix**
+
+Add dependency mapping.
+
+---
+
+# 26. Azure Private Endpoint Misconfiguration
+
+**Incident**
+
+Application lost connectivity.
+
+**Root Cause**
+
+DNS misconfigured.
+
+**Fix**
+
+Correct private DNS zone.
+
+---
+
+# 27. Terraform Backend Network Restriction
+
+**Incident**
+
+Terraform backend unreachable.
+
+**Root Cause**
+
+Storage firewall rules.
+
+**Fix**
+
+Allow DevOps agent IP.
+
+---
+
+# 28. Terraform Plan False Changes
+
+**Incident**
+
+Terraform detected unnecessary updates.
+
+**Root Cause**
+
+Provider bug.
+
+**Fix**
+
+Pin stable provider version.
+
+---
+
+# 29. AKS Cluster Destroyed Accidentally
+
+**Incident**
+
+Terraform destroy executed.
+
+**Fix**
+
+Enable:
+
+```
+prevent_destroy
+```
+
+---
+
+# 30. Terraform Workspace Misuse
+
+**Incident**
+
+Production infra deployed into dev workspace.
+
+**Fix**
+
+Strict workspace naming.
+
+Example:
+
+```
+terraform workspace select prod
+```
+
+---
+
+# Key Lessons from These War Stories
+
+| Lesson       | Best Practice               |
+| ------------ | --------------------------- |
+| State safety | Remote backend + versioning |
+| Security     | Use Key Vault               |
+| Stability    | Lock Terraform version      |
+| Governance   | Prevent destroy lifecycle   |
+| Scale        | Split Terraform states      |
+| Reliability  | Multi-region deployment     |
+
+---
+
+Below is a **Senior DevOps Handbook: 50 Real AKS Production Incidents (Outages + Root Cause + Fix)**.
+These incidents reflect **real Kubernetes failures in production clusters on Azure Kubernetes Service** and are commonly discussed in **7–10 year DevOps interviews**.
+
+---
+
+# 50 Real AKS Production Incidents (Outages + Root Cause + Fix)
+
+---
+
+# 1. Pods in CrashLoopBackOff
+
+**Root Cause**
+Application crashes on startup.
+
+**Check**
+
+```
+kubectl logs pod-name
+```
+
+**Fix**
+
+* Fix application configuration
+* Verify environment variables
+
+---
+
+# 2. Pods Stuck in Pending
+
+**Root Cause**
+Insufficient cluster resources.
+
+**Check**
+
+```
+kubectl describe pod pod-name
+```
+
+**Fix**
+Scale node pool.
+
+---
+
+# 3. Node NotReady State
+
+**Root Cause**
+Kubelet failure or network issue.
+
+**Check**
+
+```
+kubectl get nodes
+kubectl describe node node-name
+```
+
+**Fix**
+Restart node or reimage node.
+
+---
+
+# 4. ImagePullBackOff Error
+
+**Root Cause**
+Incorrect image or private registry authentication failure.
+
+**Fix**
+
+```
+kubectl create secret docker-registry
+```
+
+---
+
+# 5. AKS Cluster Autoscaler Not Scaling
+
+**Root Cause**
+Autoscaler permission issue.
+
+**Fix**
+Update autoscaler RBAC permissions.
+
+---
+
+# 6. High API Server Latency
+
+**Root Cause**
+Too many requests to Kubernetes API.
+
+**Fix**
+Reduce excessive controllers or scripts.
+
+---
+
+# 7. Ingress Not Routing Traffic
+
+**Root Cause**
+Ingress controller misconfiguration.
+
+**Check**
+
+```
+kubectl get ingress
+kubectl describe ingress
+```
+
+**Fix**
+Update ingress rules.
+
+---
+
+# 8. Service Not Reachable
+
+**Root Cause**
+Service selector mismatch.
+
+**Check**
+
+```
+kubectl get svc
+kubectl get endpoints
+```
+
+**Fix**
+Correct labels.
+
+---
+
+# 9. Persistent Volume Not Mounting
+
+**Root Cause**
+Storage class misconfiguration.
+
+**Fix**
+Verify PVC and storage class.
+
+---
+
+# 10. DNS Resolution Failure
+
+**Root Cause**
+CoreDNS pod failure.
+
+**Fix**
+
+```
+kubectl rollout restart deployment coredns -n kube-system
+```
+
+---
+
+# 11. Node Disk Pressure
+
+**Root Cause**
+Node disk full.
+
+**Fix**
+Clean logs or scale nodes.
+
+---
+
+# 12. Memory OOMKilled Pods
+
+**Root Cause**
+Pod memory limit exceeded.
+
+**Fix**
+Increase memory limits.
+
+---
+
+# 13. Pod Evictions
+
+**Root Cause**
+Node resource pressure.
+
+**Fix**
+Add more nodes.
+
+---
+
+# 14. Kubernetes Scheduler Failure
+
+**Root Cause**
+Scheduler crash.
+
+**Fix**
+Restart control plane components.
+
+---
+
+# 15. Load Balancer Not Provisioning
+
+**Root Cause**
+Subnet IP exhaustion.
+
+**Fix**
+Expand subnet range.
+
+---
+
+# 16. Helm Deployment Failure
+
+**Root Cause**
+Chart dependency failure.
+
+**Fix**
+
+```
+helm dependency update
+```
+
+---
+
+# 17. Secret Not Found Error
+
+**Root Cause**
+Secret not created before deployment.
+
+**Fix**
+
+```
+kubectl create secret
+```
+
+---
+
+# 18. Node Pool Scaling Failure
+
+**Root Cause**
+Quota exceeded.
+
+**Fix**
+Request Azure quota increase.
+
+---
+
+# 19. Container Runtime Failure
+
+**Root Cause**
+Container runtime crash.
+
+**Fix**
+Restart node.
+
+---
+
+# 20. Kubernetes Upgrade Failure
+
+**Root Cause**
+Deprecated API versions.
+
+**Fix**
+Update manifests before upgrade.
+
+---
+
+# 21. Pod Network Not Working
+
+**Root Cause**
+CNI plugin failure.
+
+**Fix**
+Restart CNI pods.
+
+---
+
+# 22. Internal Service Timeout
+
+**Root Cause**
+Network policy blocking traffic.
+
+**Fix**
+Update network policy rules.
+
+---
+
+# 23. Metrics Server Not Working
+
+**Root Cause**
+Metrics server crash.
+
+**Fix**
+
+```
+kubectl rollout restart deployment metrics-server
+```
+
+---
+
+# 24. Horizontal Pod Autoscaler Not Scaling
+
+**Root Cause**
+Metrics server missing.
+
+**Fix**
+Deploy metrics server.
+
+---
+
+# 25. External DNS Not Updating Records
+
+**Root Cause**
+DNS permissions missing.
+
+**Fix**
+Grant DNS contributor role.
+
+---
+
+# 26. Node Pool Upgrade Stuck
+
+**Root Cause**
+Pod disruption budgets blocking upgrade.
+
+**Fix**
+Temporarily adjust PDB.
+
+---
+
+# 27. Cluster Networking Latency
+
+**Root Cause**
+Large number of services.
+
+**Fix**
+Optimize service architecture.
+
+---
+
+# 28. Storage Volume Stuck in Terminating
+
+**Root Cause**
+Finalizer blocking deletion.
+
+**Fix**
+Remove finalizer manually.
+
+---
+
+# 29. API Server Authentication Failure
+
+**Root Cause**
+Expired certificates.
+
+**Fix**
+Rotate certificates.
+
+---
+
+# 30. Namespace Stuck in Terminating
+
+**Root Cause**
+Remaining finalizers.
+
+**Fix**
+
+```
+kubectl patch namespace
+```
+
+---
+
+# 31. Kubernetes Events Flood
+
+**Root Cause**
+Misconfigured controller.
+
+**Fix**
+Reduce event generation.
+
+---
+
+# 32. Pod Startup Slow
+
+**Root Cause**
+Large container image.
+
+**Fix**
+Optimize image size.
+
+---
+
+# 33. Pod Logs Missing
+
+**Root Cause**
+Log rotation misconfiguration.
+
+**Fix**
+Update logging configuration.
+
+---
+
+# 34. AKS Cluster Creation Failure
+
+**Root Cause**
+Subnet not delegated properly.
+
+**Fix**
+Reconfigure subnet.
+
+---
+
+# 35. Network Policy Blocking Egress
+
+**Root Cause**
+Strict policies.
+
+**Fix**
+Allow required traffic.
+
+---
+
+# 36. Azure Load Balancer Health Probe Failure
+
+**Root Cause**
+Incorrect probe path.
+
+**Fix**
+Correct health check.
+
+---
+
+# 37. Kubernetes Controller Crash
+
+**Root Cause**
+Bug in custom controller.
+
+**Fix**
+Update controller version.
+
+---
+
+# 38. Cluster Autoscaler Removing Critical Nodes
+
+**Root Cause**
+Incorrect node labels.
+
+**Fix**
+Add node taints.
+
+---
+
+# 39. Application Downtime During Deployment
+
+**Root Cause**
+Improper rolling update strategy.
+
+**Fix**
+Configure rolling strategy.
+
+---
+
+# 40. Pod Security Policy Blocking Pods
+
+**Root Cause**
+Security policy restrictions.
+
+**Fix**
+Adjust security policy.
+
+---
+
+# 41. Helm Rollback Failure
+
+**Root Cause**
+State mismatch.
+
+**Fix**
+
+```
+helm rollback release
+```
+
+---
+
+# 42. AKS Managed Identity Failure
+
+**Root Cause**
+Identity permissions missing.
+
+**Fix**
+Assign correct roles.
+
+---
+
+# 43. Image Registry Rate Limit
+
+**Root Cause**
+Too many image pulls.
+
+**Fix**
+Use image caching.
+
+---
+
+# 44. TLS Certificate Expired
+
+**Root Cause**
+Certificate renewal not automated.
+
+**Fix**
+Use cert-manager.
+
+---
+
+# 45. Kubernetes Job Not Completing
+
+**Root Cause**
+Job retries failing.
+
+**Fix**
+Debug job logs.
+
+---
+
+# 46. Pod Anti-Affinity Blocking Scheduling
+
+**Root Cause**
+Too strict rules.
+
+**Fix**
+Relax affinity constraints.
+
+---
+
+# 47. Service Mesh Sidecar Crash
+
+**Root Cause**
+Sidecar configuration error.
+
+**Fix**
+Restart mesh control plane.
+
+---
+
+# 48. Pod Security Context Failure
+
+**Root Cause**
+Incorrect user permissions.
+
+**Fix**
+Adjust security context.
+
+---
+
+# 49. AKS Control Plane Latency
+
+**Root Cause**
+Heavy API requests.
+
+**Fix**
+Reduce automation polling.
+
+---
+
+# 50. Multi-Region AKS Failover Failure
+
+**Root Cause**
+DNS not updated during failover.
+
+**Fix**
+Use automated traffic routing with health checks.
+
+---
+
+# Key DevOps Lessons from AKS Incidents
+
+| Category          | Best Practice                  |
+| ----------------- | ------------------------------ |
+| Cluster stability | Monitor nodes and pods         |
+| Networking        | Validate services and policies |
+| Security          | Use managed identity and RBAC  |
+| Scaling           | Configure autoscaler correctly |
+| Resilience        | Deploy multi-region clusters   |
+
+---
+
+If you'd like, I can also share **another advanced senior-level guide**:
+
+**“40 Kubernetes Troubleshooting Playbooks used by SRE teams (step-by-step debugging commands)”**
+
+These are **very powerful for Kubernetes troubleshooting interviews and real production debugging.**
+
+
+---
+
+
