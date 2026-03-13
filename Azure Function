@@ -1,0 +1,1078 @@
+Here are **Azure Functions Interview Questions & Answers (Basic → Intermediate → Advanced)** with **examples and explanations**. These are useful for **DevOps / Cloud Engineer / Serverless architecture interviews** on Microsoft Azure.
+
+---
+
+# Azure Functions Interview Q&A
+
+# 1️⃣ Basic Level (10 Questions)
+
+### 1. What is Azure Functions?
+
+**Answer:**
+Azure Functions is a **serverless compute service** in Microsoft Azure that allows you to run code **without managing servers**.
+
+**Example:**
+A function runs automatically when a file is uploaded to Azure Storage.
+
+```
+Trigger: Blob Storage
+Action: Resize image
+```
+
+**Explanation:**
+Azure automatically handles **scaling, infrastructure, and runtime**.
+
+---
+
+### 2. What are triggers in Azure Functions?
+
+**Answer:**
+Triggers are **events that start function execution**.
+
+**Common Triggers**
+
+* HTTP Trigger
+* Timer Trigger
+* Blob Storage Trigger
+* Queue Trigger
+* Event Hub Trigger
+
+**Example**
+
+```
+HTTP Trigger → API endpoint
+Timer Trigger → Cron job
+```
+
+---
+
+### 3. What are bindings?
+
+**Answer:**
+Bindings connect Azure Functions to other services **without writing connection code**.
+
+**Types**
+
+* Input Binding
+* Output Binding
+
+**Example**
+
+```
+Queue message → Function
+Function → CosmosDB
+```
+
+---
+
+### 4. What languages are supported in Azure Functions?
+
+Supported languages include:
+
+* Python
+* C#
+* Java
+* JavaScript
+* PowerShell
+* TypeScript
+
+**Example**
+
+Python function example
+
+```python
+import logging
+
+def main(req):
+    logging.info("Function executed")
+    return "Hello Azure"
+```
+
+---
+
+### 5. What is the difference between Azure Functions and Azure Logic Apps?
+
+| Feature  | Azure Functions  | Azure Logic Apps   |
+| -------- | ---------------- | ------------------ |
+| Coding   | Required         | Low code           |
+| Workflow | Developer driven | Visual workflow    |
+| Use case | Microservices    | Business workflows |
+
+Both run on Microsoft Azure serverless infrastructure.
+
+---
+
+### 6. What is the Consumption Plan?
+
+**Answer:**
+The **Consumption Plan** runs functions **only when triggered**.
+
+You pay for:
+
+* Execution time
+* Memory used
+
+**Example**
+
+```
+Function runs 5 seconds
+Cost charged only for 5 seconds
+```
+
+---
+
+### 7. What is the difference between Consumption and Premium Plan?
+
+| Plan        | Scaling              | Use case               |
+| ----------- | -------------------- | ---------------------- |
+| Consumption | Automatic            | Event-driven workloads |
+| Premium     | Pre-warmed instances | Low latency apps       |
+
+---
+
+### 8. What is a Function App?
+
+A **Function App** is a container that holds one or more Azure Functions.
+
+Example structure:
+
+```
+Function App
+   ├── ProcessOrder
+   ├── SendEmail
+   └── GenerateReport
+```
+
+---
+
+### 9. What is a Timer Trigger?
+
+Runs functions on a **scheduled basis**.
+
+Example CRON schedule
+
+```
+0 */5 * * * *
+```
+
+Runs every **5 minutes**.
+
+---
+
+### 10. How do you deploy Azure Functions?
+
+Common methods:
+
+* Azure CLI
+* Azure DevOps
+* GitHub Actions
+* VS Code
+* ZIP deploy
+
+Example:
+
+```
+func azure functionapp publish myFunctionApp
+```
+
+---
+
+# 2️⃣ Intermediate Level (10 Questions)
+
+---
+
+### 1. What is cold start in Azure Functions?
+
+Cold start occurs when the function is **not running and Azure needs to start it**.
+
+This causes **startup latency**.
+
+Example
+
+```
+First request → 4 seconds
+Next request → 100ms
+```
+
+**Solution**
+
+* Premium plan
+* Keep warm strategy
+
+---
+
+### 2. What is Durable Functions?
+
+Azure Durable Functions allow **stateful serverless workflows**.
+
+Example workflow
+
+```
+Order Processing
+   ↓
+Validate Order
+   ↓
+Payment Processing
+   ↓
+Shipping
+```
+
+---
+
+### 3. What is the difference between synchronous and asynchronous functions?
+
+| Type  | Description               |
+| ----- | ------------------------- |
+| Sync  | Caller waits for response |
+| Async | Runs in background        |
+
+Example
+
+```
+HTTP API → sync
+Queue processing → async
+```
+
+---
+
+### 4. What is the host.json file?
+
+It configures **runtime settings**.
+
+Example
+
+```
+{
+ "version": "2.0",
+ "functionTimeout": "00:10:00"
+}
+```
+
+---
+
+### 5. How do you secure Azure Functions?
+
+Methods include:
+
+* API keys
+* OAuth
+* Managed Identity
+* Azure AD authentication
+
+Example
+
+```
+Authorization Level = Function
+```
+
+---
+
+### 6. What is Azure Function scaling?
+
+Azure Functions automatically scale based on events.
+
+Example
+
+```
+1 queue message → 1 instance
+1000 queue messages → 50 instances
+```
+
+---
+
+### 7. What monitoring tools are used?
+
+Main monitoring tool:
+
+Azure Application Insights
+
+Features:
+
+* Logs
+* Metrics
+* Performance tracking
+* Failure detection
+
+---
+
+### 8. What is Managed Identity in Azure Functions?
+
+Managed Identity allows functions to access services **without storing credentials**.
+
+Example
+
+```
+Function → Access Azure Key Vault
+```
+
+Using:
+
+Azure Key Vault
+
+---
+
+### 9. What is the timeout limit in Azure Functions?
+
+| Plan        | Timeout      |
+| ----------- | ------------ |
+| Consumption | 5–10 minutes |
+| Premium     | Unlimited    |
+
+---
+
+### 10. How do Azure Functions integrate with Event Driven Architecture?
+
+Functions respond to events from:
+
+* Event Grid
+* Event Hub
+* Storage queues
+
+Example
+
+```
+Event Grid → Image uploaded
+Function → Process image
+```
+
+---
+
+# 3️⃣ Advanced Level (15 Questions)
+
+---
+
+### 1. How would you design a serverless architecture using Azure Functions?
+
+Example architecture
+
+```
+Client
+  ↓
+API Gateway
+  ↓
+Azure Function
+  ↓
+Service Bus
+  ↓
+Worker Function
+  ↓
+CosmosDB
+```
+
+Technologies:
+
+* Azure API Management
+* Azure Service Bus
+* Azure Cosmos DB
+
+---
+
+### 2. How do you handle retries in Azure Functions?
+
+Use retry policies.
+
+Example:
+
+```
+maxRetryCount: 5
+delayInterval: 10s
+```
+
+---
+
+### 3. How do you prevent duplicate processing in queue triggers?
+
+Use:
+
+* Message ID
+* Idempotent logic
+* Deduplication
+
+Example
+
+```
+OrderID check in database
+```
+
+---
+
+### 4. How do you manage secrets?
+
+Best practice:
+
+Use **Key Vault** instead of environment variables.
+
+Example
+
+```
+Function → Key Vault → DB password
+```
+
+Using:
+
+Azure Key Vault
+
+---
+
+### 5. How do you debug production Azure Functions?
+
+Steps
+
+1 Check logs
+2 Check App Insights
+3 Check failures
+
+Tool:
+
+Azure Monitor
+
+---
+
+### 6. How do you implement CI/CD for Azure Functions?
+
+Pipeline example
+
+```
+GitHub → Build → Test → Deploy → Azure Function
+```
+
+Using:
+
+* Azure DevOps
+* GitHub
+
+---
+
+### 7. How do you run Azure Functions inside containers?
+
+You can package functions into Docker images.
+
+Example
+
+```
+Dockerfile
+FROM mcr.microsoft.com/azure-functions/python
+```
+
+Deploy to:
+
+* Azure Kubernetes Service
+* Azure Container Apps
+
+---
+
+### 8. What is the difference between Event Grid and Event Hub?
+
+| Feature  | Event Grid    | Event Hub      |
+| -------- | ------------- | -------------- |
+| Use case | Event routing | Data streaming |
+| Scale    | Moderate      | Massive        |
+
+---
+
+### 9. How do you reduce cold start?
+
+Solutions:
+
+* Premium plan
+* Always-on
+* Pre-warmed instances
+* Lightweight dependencies
+
+---
+
+### 10. How do you handle long-running workflows?
+
+Use **Durable Functions** orchestration.
+
+Example
+
+```
+Orchestrator
+   ↓
+Activity 1
+   ↓
+Activity 2
+```
+
+---
+
+### 11. How do you manage high throughput workloads?
+
+Use:
+
+* Queue triggers
+* Batch processing
+* Event Hub
+
+---
+
+### 12. What are common Azure Function production failures?
+
+Examples:
+
+| Issue       | Cause             |
+| ----------- | ----------------- |
+| Timeout     | Long running code |
+| Memory leak | Large objects     |
+| Cold start  | Idle functions    |
+
+---
+
+### 13. How do you log custom telemetry?
+
+Use Application Insights SDK.
+
+Example
+
+```
+logger.info("Order processed")
+```
+
+---
+
+### 14. How do you manage configuration?
+
+Use:
+
+* App Settings
+* Environment variables
+* Key Vault references
+
+---
+
+### 15. What are best practices for Azure Functions?
+
+Best practices
+
+* Stateless design
+* Event-driven architecture
+* Use retry policies
+* Use monitoring
+* Avoid long synchronous calls
+
+---
+
+# Real DevOps Example (Production)
+
+Scenario
+
+```
+E-commerce order processing
+```
+
+Architecture
+
+```
+User places order
+     ↓
+API Gateway
+     ↓
+Azure Function
+     ↓
+Service Bus Queue
+     ↓
+Order Processor Function
+     ↓
+CosmosDB
+```
+
+Benefits
+
+* Auto scaling
+* Serverless
+* Fault tolerance
+
+--------------------------------------------------------------------------------------------------
+Below are **15 Real DevOps Troubleshooting Scenarios for Azure Functions** used in production environments on Microsoft Azure.
+Each includes **problem → root cause → troubleshooting → fix** (similar to real DevOps interview cases).
+
+---
+
+# 1️⃣ Function Not Triggering When Blob Is Uploaded
+
+### Problem
+
+A file is uploaded to **Blob Storage**, but the function is not triggered.
+
+### Root Cause
+
+* Wrong storage connection string
+* Incorrect container name
+* Trigger binding misconfigured
+
+### Troubleshooting
+
+Check `function.json`
+
+```json
+{
+ "type": "blobTrigger",
+ "path": "images/{name}",
+ "connection": "AzureWebJobsStorage"
+}
+```
+
+Check logs in:
+
+* Azure Application Insights
+* Azure Function logs
+
+### Fix
+
+Update container path or storage connection in **Application Settings**.
+
+---
+
+# 2️⃣ Function HTTP API Returning 500 Error
+
+### Problem
+
+HTTP trigger returns **500 Internal Server Error**.
+
+### Root Cause
+
+* Code exception
+* Missing environment variables
+* Dependency failure
+
+### Troubleshooting
+
+Check logs:
+
+```
+Azure Portal → Function → Monitor
+```
+
+Use:
+
+```bash
+func logs
+```
+
+### Fix
+
+Add error handling.
+
+Example
+
+```python
+try:
+   process_data()
+except Exception as e:
+   logging.error(str(e))
+```
+
+---
+
+# 3️⃣ Function Experiencing Cold Start Delay
+
+### Problem
+
+First request takes **5–10 seconds**.
+
+### Root Cause
+
+Consumption plan cold start.
+
+### Troubleshooting
+
+Check metrics in:
+
+* Azure Monitor
+
+### Fix
+
+Solutions
+
+* Use **Premium plan**
+* Enable **Always On**
+* Reduce dependencies.
+
+---
+
+# 4️⃣ Queue Messages Not Being Processed
+
+### Problem
+
+Messages are stuck in **Azure Storage Queue**.
+
+### Root Cause
+
+* Function crash
+* Poison message
+* Scaling issues
+
+### Troubleshooting
+
+Check:
+
+```
+Queue length
+Function logs
+Poison queue
+```
+
+### Fix
+
+Enable retry policy
+
+```json
+{
+ "maxDequeueCount": 5
+}
+```
+
+---
+
+# 5️⃣ Function Timing Out
+
+### Problem
+
+Function stops execution after a few minutes.
+
+### Root Cause
+
+Timeout configuration.
+
+### Troubleshooting
+
+Check:
+
+```
+host.json
+```
+
+Example
+
+```json
+{
+ "functionTimeout": "00:10:00"
+}
+```
+
+### Fix
+
+Use:
+
+* Premium plan
+* Durable functions
+
+---
+
+# 6️⃣ High Memory Usage Causing Function Crash
+
+### Problem
+
+Function instance crashes under load.
+
+### Root Cause
+
+* Large data processing
+* Memory leaks
+
+### Troubleshooting
+
+Check metrics in:
+
+* Azure Application Insights
+
+### Fix
+
+Optimize code.
+
+Example
+
+Instead of loading entire file:
+
+```python
+file.read()
+```
+
+Use streaming.
+
+---
+
+# 7️⃣ Function Not Scaling Automatically
+
+### Problem
+
+Queue has **1000 messages but only 1 instance running**.
+
+### Root Cause
+
+* Concurrency settings
+* Storage throttling
+
+### Troubleshooting
+
+Check scale controller logs.
+
+### Fix
+
+Increase concurrency.
+
+```json
+{
+ "extensions": {
+   "queues": {
+     "batchSize": 32
+   }
+ }
+}
+```
+
+---
+
+# 8️⃣ Function Cannot Access Azure Key Vault
+
+### Problem
+
+Function fails to retrieve secrets.
+
+### Root Cause
+
+Managed identity not configured.
+
+Service involved:
+
+Azure Key Vault
+
+### Troubleshooting
+
+Check identity:
+
+```
+Function App → Identity → System Assigned
+```
+
+### Fix
+
+Grant permission:
+
+```
+Key Vault → Access Policies → Add Function Identity
+```
+
+---
+
+# 9️⃣ Deployment Failed in CI/CD Pipeline
+
+### Problem
+
+Deployment from pipeline fails.
+
+Tools commonly used
+
+* Azure DevOps
+* GitHub
+
+### Root Cause
+
+* Build artifact missing
+* Wrong runtime version
+
+### Troubleshooting
+
+Check pipeline logs.
+
+### Fix
+
+Correct build command
+
+```bash
+func azure functionapp publish myapp
+```
+
+---
+
+# 🔟 Function Cannot Connect to Database
+
+### Problem
+
+Function fails to connect to DB.
+
+### Root Cause
+
+* Firewall blocking
+* Wrong connection string
+
+### Troubleshooting
+
+Test connection locally.
+
+Example
+
+```
+telnet dbserver 1433
+```
+
+### Fix
+
+Allow Azure service access in DB firewall.
+
+---
+
+# 1️⃣1️⃣ Duplicate Queue Message Processing
+
+### Problem
+
+Same message processed twice.
+
+### Root Cause
+
+Queue retries.
+
+### Troubleshooting
+
+Check message dequeue count.
+
+### Fix
+
+Implement **idempotency logic**.
+
+Example
+
+```
+Check order ID before processing.
+```
+
+---
+
+# 1️⃣2️⃣ Event Grid Trigger Not Working
+
+### Problem
+
+Event grid event not invoking function.
+
+Service used:
+
+Azure Event Grid
+
+### Root Cause
+
+Subscription not configured.
+
+### Troubleshooting
+
+Check:
+
+```
+Event Grid → Event Subscription
+```
+
+### Fix
+
+Recreate event subscription.
+
+---
+
+# 1️⃣3️⃣ Function Logging Missing
+
+### Problem
+
+No logs visible in monitoring.
+
+### Root Cause
+
+Logging not configured.
+
+### Troubleshooting
+
+Enable:
+
+```
+Application Insights
+```
+
+### Fix
+
+Enable instrumentation key.
+
+---
+
+# 1️⃣4️⃣ Function Running Multiple Times Unexpectedly
+
+### Problem
+
+Function triggered multiple times.
+
+### Root Cause
+
+* Event duplication
+* Retry mechanism
+
+### Troubleshooting
+
+Check event logs.
+
+### Fix
+
+Add event deduplication logic.
+
+Example
+
+```
+Check event ID in database.
+```
+
+---
+
+# 1️⃣5️⃣ Storage Throttling Causing Function Failure
+
+### Problem
+
+Function fails during heavy load.
+
+### Root Cause
+
+Storage account request limit reached.
+
+### Troubleshooting
+
+Check metrics:
+
+```
+Storage → Metrics → Throttling Errors
+```
+
+### Fix
+
+Solutions
+
+* Upgrade storage tier
+* Use multiple storage accounts
+* Enable caching
+
+---
+
+# 🧠 Real Production Architecture Example
+
+Typical serverless pipeline
+
+```
+Client
+   ↓
+API Gateway
+   ↓
+Azure Function
+   ↓
+Service Bus Queue
+   ↓
+Worker Function
+   ↓
+Database
+```
+
+Technologies used:
+
+* Azure Service Bus
+* Azure Cosmos DB
+* Azure Application Insights
+
+---
+
+
+
+
+
